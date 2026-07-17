@@ -1,0 +1,48 @@
+import "dotenv/config";
+
+const APP_NAME = process.env.APP_NAME || "API";
+const APP_PORT = process.env.APP_PORT || 8000;
+const APP_ENV = process.env.APP_ENV || "development";
+
+const IS_PROD = APP_ENV === "production";
+const CLIENT_ORIGIN = process.env.CLIENT_ORIGIN || "http://localhost:5173";
+
+const DB_URL = process.env.DATABASE_URL || "";
+const DIRECT_DB_URL = process.env.DIRECT_URL || "";
+
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_AUTH_CLIENT_ID || "";
+
+const REDIS_HOST: string = process.env.REDIS_HOST || "localhost";
+const REDIS_PORT: number = Number(process.env.REDIS_PORT) || 6379;
+const REDIS_PASSWORD: string = process.env.REDIS_PASSWORD || "";
+const REDIS_DB: number = Number(process.env.REDIS_DB) || 0;
+const REDIS_PROVIDER: "ioredis" | "upstash" = (process.env.REDIS_PROVIDER as "ioredis" | "upstash") || "ioredis";
+const UPSTASH_REDIS_URL: string = process.env.UPSTASH_REDIS_URL || "";
+const UPSTASH_REDIS_TOKEN: string = process.env.UPSTASH_REDIS_TOKEN || "";
+
+const JWT_ACCESS_SECRET = process.env.JWT_ACCESS_SECRET || "access_secret_123";
+const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refresh_secret_123";
+const JWT_ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
+const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
+
+export {
+	APP_NAME,
+	APP_PORT,
+	APP_ENV,
+	DB_URL,
+	DIRECT_DB_URL,
+	IS_PROD,
+	CLIENT_ORIGIN,
+	GOOGLE_CLIENT_ID,
+	REDIS_PROVIDER,
+	REDIS_HOST,
+	REDIS_PORT,
+	REDIS_PASSWORD,
+	REDIS_DB,
+	UPSTASH_REDIS_URL,
+	UPSTASH_REDIS_TOKEN,
+	JWT_ACCESS_SECRET,
+	JWT_REFRESH_SECRET,
+	JWT_ACCESS_EXPIRES_IN,
+	JWT_REFRESH_EXPIRES_IN,
+};

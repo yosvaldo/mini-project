@@ -1,28 +1,11 @@
-import { useEffect, useState } from 'react'
-import './App.css'
-import api from './configs/api.config'
+import { Outlet } from "react-router-dom";
 
 function App() {
-  const [welcomeMsg, setWelcomeMsg] = useState("")
-
-  useEffect(() => {
-    const fetchWelcome = async () => {
-      const res = await api.get("/");
-      setWelcomeMsg(res.data.message);
-    };
-    
-    fetchWelcome();
-  }, []);
-
   return (
-    <>
-      <section id="center">
-        <div>
-          {welcomeMsg &&<p>{welcomeMsg}</p>}
-        </div>
-      </section>
-    </>
-  )
+    <main className="min-h-screen bg-slate-950 text-slate-100">
+      <Outlet />
+    </main>
+  );
 }
 
-export default App
+export default App;
