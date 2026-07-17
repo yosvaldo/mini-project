@@ -1,4 +1,4 @@
-import useAuthStore from "@/stores/authStore";
+import useAuthStore from "../../stores/authStore.js";
 import { redirect, type MiddlewareFunction } from "react-router-dom";
 
 export const guestMiddleware: MiddlewareFunction = async (_, next) => {
