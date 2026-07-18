@@ -1,6 +1,12 @@
 import axios from "axios";
 
-const api = axios.create({
+let accessTokenMemory: string | null = null;
+
+export const setAccessToken = (token: string | null) => {
+    accessTokenMemory = token;
+};
+
+export const apiStatic = axios.create({
     baseURL: `${import.meta.env.VITE_BASE_API_URL || "http://localhost:8000"}`,
     withCredentials: true,
     headers: {
@@ -8,4 +14,11 @@ const api = axios.create({
     },
 });
 
-export default api;
+apiStatic.interceptors.request.use((config) => {
+    if (accessTokenMemory && config.headers) {
+        config.headers.Authorization = `Bearer ${accessTokenMemory}`;
+    }
+    return config;
+});
+
+export default apiStatic;

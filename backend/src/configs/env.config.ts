@@ -25,6 +25,11 @@ const JWT_REFRESH_SECRET = process.env.JWT_REFRESH_SECRET || "refresh_secret_123
 const JWT_ACCESS_EXPIRES_IN = process.env.JWT_ACCESS_EXPIRES_IN || "15m";
 const JWT_REFRESH_EXPIRES_IN = process.env.JWT_REFRESH_EXPIRES_IN || "7d";
 
+const SMTP_HOST = process.env.SMTP_HOST || "smtp.ethereal.email";
+const SMTP_PORT = process.env.SMTP_PORT || 587;
+const SMTP_USER = process.env.SMTP_USER
+const SMTP_PASS = process.env.SMTP_PASS
+
 export {
 	APP_NAME,
 	APP_PORT,
@@ -45,4 +50,8 @@ export {
 	JWT_REFRESH_SECRET,
 	JWT_ACCESS_EXPIRES_IN,
 	JWT_REFRESH_EXPIRES_IN,
+	SMTP_HOST,
+	SMTP_PORT,
+	SMTP_USER,
+	SMTP_PASS,
 };
