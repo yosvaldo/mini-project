@@ -17,6 +17,12 @@ enum TicketType {
   PAID
 }
 
+enum TransactionStatus {
+  PENDING
+  DONE
+  REJECTED
+}
+
 model User {
   id           String        @id @default(uuid())
   email        String        @unique
@@ -86,17 +92,18 @@ model Event {
 }
 
 model Transaction {
-  id            String   @id @default(uuid())
-  userId        String   @map("user_id")
-  user          User     @relation(fields: [userId], references: [id])
-  eventId       String   @map("event_id")
-  event         Event    @relation(fields: [eventId], references: [id])
-  quantity      Int      @default(1)
-  basePrice     Int      @map("base_price")
-  discount      Int      @default(0)
-  finalPrice    Int      @map("final_price")
-  paymentProof  String?  @map("payment_proof")
-  createdAt     DateTime @default(now()) @map("created_at")
+  id            String            @id @default(uuid())
+  userId        String            @map("user_id")
+  user          User              @relation(fields: [userId], references: [id])
+  eventId       String            @map("event_id")
+  event         Event             @relation(fields: [eventId], references: [id])
+  quantity      Int               @default(1)
+  basePrice     Int               @map("base_price")
+  discount      Int               @default(0)
+  finalPrice    Int               @map("final_price")
+  paymentProof  String?           @map("payment_proof")
+  status        TransactionStatus @default(PENDING)
+  createdAt     DateTime          @default(now()) @map("created_at")
   pointsUsed    Point[]  
   couponsUsed   Coupon[] 
 

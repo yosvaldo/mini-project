@@ -36,3 +36,10 @@ export const googleSignInSchema = z.object({
 	idToken: z.string().min(1, "Google ID token is required"),
 	role: z.string().optional(),
 });
+
+export const PurchaseTicketSchema = z.object({
+    eventId: z.uuid({ message: "Invalid event identifier format" }),
+    quantity: z.number().int().positive({ message: "Quantity must be greater than zero" }),
+    useCouponId: z.uuid({ message: "Invalid coupon identifier format" }).optional().nullable(),
+    usePoints: z.boolean().optional().default(false)
+});

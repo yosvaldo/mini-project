@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Welcome to Eventura</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; color: #333; margin: 0; padding: 20px; }
+        .card { max-width: 600px; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0 auto; }
+        h1 { color: #4F46E5; font-size: 24px; margin-bottom: 10px; }
+        .highlight { background: #EEF2F6; padding: 10px 15px; border-left: 4px solid #4F46E5; font-family: monospace; font-size: 16px; margin: 15px 0; }
+        p { line-height: 1.6; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>Welcome to Eventura, {{fullName}}!</h1>
+        <p>Your account has been successfully created. You can now explore outstanding events and secure tickets seamlessly.</p>
+        <p>Your unique referral code is:</p>
+        <div class="highlight">{{referralCode}}</div>
+        {{#if hasCoupon}}
+        <p><strong>Bonus:</strong> Since you registered using a referral link, a <strong>10% discount coupon</strong> has been credited to your wallet! It is valid for the next 3 months.</p>
+        {{/if}}
+        <p>Best regards,<br>The Eventura Team</p>
+    </div>
+</body>
+</html>

@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Payment Proof Received</title>
+    <style>
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background-color: #f9f9f9; color: #333; margin: 0; padding: 20px; }
+        .card { max-width: 600px; background: #ffffff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin: 0 auto; }
+        h1 { color: #059669; font-size: 24px; margin-bottom: 10px; }
+        .meta-table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+        .meta-table td { padding: 10px; border-bottom: 1px solid #E5E7EB; font-size: 14px; }
+        .meta-table td.label { font-weight: bold; color: #6B7280; }
+        p { line-height: 1.6; font-size: 15px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <h1>We've Received Your Payment Proof</h1>
+        <p>Thank you for submitting your transaction details. The event organizer is verifying your transfer information. Once approved, your tickets will be issued.</p>
+        
+        <table class="meta-table">
+            <tr>
+                <td class="label">Transaction ID</td>
+                <td>{{transactionId}}</td>
+            </tr>
+            <tr>
+                <td class="label">Total Paid</td>
+                <td>IDR {{finalPrice}}</td>
+            </tr>
+        </table>
+        
+        <p>You can track the live verification status of this request via your customer dashboard layout view.</p>
+        <p>Best regards,<br>The Eventura Team</p>
+    </div>
+</body>
+</html>
