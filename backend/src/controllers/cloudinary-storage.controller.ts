@@ -8,7 +8,7 @@ import renderTemplate from "../libs/handlebars.js";
 class CloudinaryStorageController {
     private baseDir = "eventura_file_handling";
 
-    uploadAvatar = async (req: Request, res: Response, next: NextFunction) => {
+    public uploadAvatar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             if (!req.user || !req.user.email) throw new AppError("Authentication context missing", 401);
             if (!req.file) throw new AppError("No avatar file uploaded", 400);
@@ -18,7 +18,7 @@ class CloudinaryStorageController {
                 async (err, result) => {
                     if (err || !result) return next(new AppError("Avatar upload failed", 500, err));
 
-                    return res.status(200).send({
+                    res.status(200).send({
                         status: 200,
                         message: "Avatar uploaded successfully!",
                         data: { url: result.secure_url },
@@ -32,7 +32,7 @@ class CloudinaryStorageController {
         }
     };
 
-    uploadPaymentProof = async (req: Request, res: Response, next: NextFunction) => {
+    public uploadPaymentProof = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
             if (!req.user || !req.user.email) throw new AppError("Authentication context missing", 401);
             if (!req.file) throw new AppError("No payment proof file uploaded", 400);
@@ -52,7 +52,7 @@ class CloudinaryStorageController {
                         }),
                     );
 
-                    return res.status(200).send({
+                    res.status(200).send({
                         status: 200,
                         message: "Payment proof uploaded successfully! Confirmation email sent.",
                         data: { url: result.secure_url },
@@ -67,4 +67,5 @@ class CloudinaryStorageController {
     };
 }
 
-export default new CloudinaryStorageController();
+const cloudinaryStorageController = new CloudinaryStorageController();
+export default cloudinaryStorageController;
