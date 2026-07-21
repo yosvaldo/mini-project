@@ -1,7 +1,5 @@
-import { PrismaClient } from "../src/generated/prisma/client.js";
+import { prisma } from "../src/libs/prisma.client.js";
 import type { Role, TransactionStatus } from "../src/generated/prisma/client.js";
-
-const prisma = new PrismaClient({} as any);
 
 async function main() {
   console.log("Cleaning up active database tables...");
@@ -13,8 +11,8 @@ async function main() {
 
   const rawData = {
     organizers: [
-      { email: "organizer1@harmonilive.id", fullName: "Harmoni Live Indonesia", passwordHash: "$2b$10$abcdefghijklmnopqrstuv", role: "ORGANIZER" as Role, referralCode: "HLI2026" },
-      { email: "organizer2@nusantaraconcerts.id", fullName: "Nusantara Concerts", passwordHash: "$2b$10$abcdefghijklmnopqrstuv", role: "ORGANIZER" as Role, referralCode: "NCT2026" }
+      { email: "organizer@harmonilive.id", fullName: "Harmoni Live Indonesia", passwordHash: "$2b$10$abcdefghijklmnopqrstuv", role: "ORGANIZER" as Role, referralCode: "HLI2026" },
+      { email: "organizer@nusantaraconcerts.id", fullName: "Nusantara Concerts", passwordHash: "$2b$10$abcdefghijklmnopqrstuv", role: "ORGANIZER" as Role, referralCode: "NCT2026" }
     ],
     customers: [
       { email: "andi@gmail.com", fullName: "Andi Pratama", passwordHash: "$2b$10$abcdefghijklmnopqrstuv", role: "CUSTOMER" as Role, referralCode: "ANDI01" },
