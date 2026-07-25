@@ -8,10 +8,11 @@ import errorHandler from "./middlewares/error-handler.middleware.js";
 
 export const app: Application = express();
 
+app.use(cors(corsOptions));
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(cors(corsOptions));
 
 app.use("/api", apiRoute);
 

@@ -65,6 +65,30 @@ class CloudinaryStorageController {
             next(error);
         }
     };
+
+    public uploadEventImage = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+        try {
+            if (!req.user) throw new AppError("Authentication context missing", 401);
+            if (!req.file) throw new AppError("No event image file uploaded", 400);
+
+            const stream = Cloudinary.uploader.upload_stream(
+                { folder: `${this.baseDir}/events` },
+                async (err, result) => {
+                    if (err || !result) return next(new AppError("Event image upload failed", 500, err));
+
+                    res.status(200).send({
+                        status: 200,
+                        message: "Event image uploaded successfully!",
+                        data: { url: result.secure_url },
+                    });
+                }
+            );
+
+            Readable.from(req.file.buffer).pipe(stream);
+        } catch (error) {
+            next(error);
+        }
+    };
 }
 
 const cloudinaryStorageController = new CloudinaryStorageController();
