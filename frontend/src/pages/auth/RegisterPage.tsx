@@ -13,15 +13,18 @@ export default function RegisterPage() {
   const [referredByCode, setReferredByCode] = useState("");
   const [loading, setLoading] = useState(false);
 
+  const glassStyle =
+    "bg-gradient-to-b from-white/[0.07] to-white/[0.02] backdrop-blur-[32px] backdrop-saturate-[160%] border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]";
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !password) {
       toast.error("Please fill in all required fields.");
       return;
     }
-    
+
     setLoading(true);
-    
+
     await signUp(
       {
         email,
@@ -41,71 +44,102 @@ export default function RegisterPage() {
     <>
       <Helmet>
         <title>Create Account | Eventura</title>
-        <meta name="description" content="Join Eventura to explore or organize premium global events." />
+        <meta
+          name="description"
+          content="Join Eventura to explore or organize premium global events."
+        />
       </Helmet>
 
-      <div className="min-h-[80vh] flex items-center justify-center p-4 bg-slate-950">
-        <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 p-8 rounded-xl max-w-md w-full space-y-4 text-white">
-          <h2 className="text-2xl font-extrabold text-teal-400">Create Account</h2>
-          <p className="text-slate-400 text-sm">Join Eventura to explore or organize premium global events.</p>
-
-          <div>
-            <label className="block text-xs font-semibold mb-1 text-slate-300">Email Address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2 focus:outline-none focus:border-teal-500 text-sm"
-              required
+      <div className="min-h-screen bg-eventura-dark flex items-center justify-center p-4 pt-20 pb-12">
+        <div className={`w-full max-w-md ${glassStyle} p-8 sm:p-10 rounded-[28px]`}>
+          <div className="text-center mb-6">
+            <img
+              src="/logo.webp"
+              alt="Eventura Logo"
+              className="h-10 w-auto object-contain mx-auto mb-3 filter drop-shadow-[0_0_8px_rgba(223,206,114,0.3)]"
             />
+            <h2 className="text-xs text-white font-bold tracking-[0.2em] uppercase">
+              CREATE ACCOUNT
+            </h2>
+            <p className="text-[11px] text-slate-400 mt-1">
+              Join Eventura to explore or organize premium events
+            </p>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold mb-1 text-slate-300">Password</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2 focus:outline-none focus:border-teal-500 text-sm"
-              required
-            />
-          </div>
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Email Address
+              </label>
+              <input
+                type="email"
+                required
+                placeholder="name@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+            </div>
 
-          <div>
-            <label className="block text-xs font-semibold mb-1 text-slate-300">Account Type / Role</label>
-            <select
-              value={role}
-              onChange={(e) => setRole(e.target.value as "CUSTOMER" | "ORGANIZER")}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2 focus:outline-none focus:border-teal-500 text-sm"
+            <div>
+              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Password
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Account Type
+              </label>
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as "CUSTOMER" | "ORGANIZER")}
+                className="w-full bg-eventura-navy p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all cursor-pointer"
+              >
+                <option value="CUSTOMER">Customer (Buy Tickets)</option>
+                <option value="ORGANIZER">Organizer (Host Events)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold tracking-wider uppercase text-luxury-gold mb-1.5">
+                Referral Code (Optional)
+              </label>
+              <input
+                type="text"
+                placeholder="10% discount code"
+                value={referredByCode}
+                onChange={(e) => setReferredByCode(e.target.value.toUpperCase())}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-600 font-mono uppercase"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full bg-luxury-gold text-eventura-dark font-bold py-4 rounded-xl uppercase tracking-[0.2em] text-[10px] hover:bg-luxury-gold-light transition-all cursor-pointer disabled:cursor-not-allowed disabled:opacity-50 mt-2"
             >
-              <option value="CUSTOMER">Customer (Buy Tickets)</option>
-              <option value="ORGANIZER">Organizer (Host Events)</option>
-            </select>
+              {loading ? "Creating Account..." : "REGISTER NOW"}
+            </button>
+          </form>
+
+          <div className="text-center mt-6">
+            <p className="text-[11px] text-slate-400">
+              Already have an account?{" "}
+              <Link to="/login" className="text-luxury-gold hover:underline font-semibold">
+                Log in here
+              </Link>
+            </p>
           </div>
-
-          <div>
-            <label className="block text-xs font-semibold mb-1 text-teal-500">Referral Code (Optional)</label>
-            <input
-              type="text"
-              placeholder="Get a 10% coupon by adding a code"
-              value={referredByCode}
-              onChange={(e) => setReferredByCode(e.target.value.toUpperCase())}
-              className="w-full bg-slate-800 border border-slate-700 rounded p-2 focus:outline-none focus:border-teal-500 text-sm placeholder-slate-600 font-mono"
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-teal-600 hover:bg-teal-500 font-bold py-2 px-4 rounded text-sm transition text-white disabled:opacity-50"
-          >
-            {loading ? "Creating Account..." : "Register"}
-          </button>
-
-          <p className="text-xs text-slate-400 text-center mt-4">
-            Already have an account? <Link to="/login" className="text-teal-400 hover:underline">Log in here</Link>
-          </p>
-        </form>
+        </div>
       </div>
     </>
   );

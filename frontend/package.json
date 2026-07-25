@@ -1,7 +1,7 @@
 {
-  "name": "frontend",
+  "name": "eventura",
   "private": true,
-  "version": "0.0.0",
+  "version": "1.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
+    "@tailwindcss/vite": "^4.3.3",
     "axios": "^1.18.1",
     "date-fns": "^4.4.0",
     "lucide-react": "^1.24.0",
@@ -21,6 +22,7 @@
     "react-router-dom": "^7.18.1",
     "recharts": "^3.9.2",
     "sonner": "^2.0.7",
+    "tailwindcss": "^4.3.3",
     "zod": "^4.4.3",
     "zustand": "^5.0.14"
   },

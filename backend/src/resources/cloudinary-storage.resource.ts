@@ -16,4 +16,10 @@ cloudinaryStorageResource.post(
     cloudinaryStorageController.uploadPaymentProof,
 );
 
+cloudinaryStorageResource.post(
+    "/event-images",
+    imageUploader().single("image"),
+    cloudinaryStorageController.uploadEventImage,
+);
+
 export default cloudinaryStorageResource;
