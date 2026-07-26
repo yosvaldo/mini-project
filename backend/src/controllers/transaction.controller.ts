@@ -1,74 +1,77 @@
-import type { NextFunction, Request, Response } from "express";
-import { responseBuilder } from "../utils/response-builder.util.js";
-import AppError from "../errors/app.error.js";
+import type { Request, Response, NextFunction } from "express";
 import transactionService from "../services/transaction.service.js";
-import { PurchaseTicketSchema } from "../validators/auth.validator.js";
-import { Readable } from "stream";
-import { v2 as cloudinary } from "cloudinary"; 
+import AppError from "../errors/app.error.js";
+import { responseBuilder } from "../utils/response-builder.util.js";
 
 class TransactionController {
-    checkoutPreview = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            if (!req.user) throw new AppError("Authentication target context missing", 401);
-            const userId = (req.user as any).id;
-            
-            const payload = {
-                eventId: req.query.eventId as string,
-                quantity: Number(req.query.quantity),
-                useCouponId: req.query.useCouponId as string || null,
-                usePoints: req.query.usePoints === "true"
-            };
+  getPreview = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) throw new AppError("Unauthorized", 401);
 
-            const parsed = await PurchaseTicketSchema.parseAsync(payload);
-            const preview = await transactionService.calculateCheckoutPreview(
-                userId, parsed.eventId, parsed.quantity, parsed.useCouponId, parsed.usePoints
-            );
+      const { eventId, quantity, useCouponId, usePoints } = req.query;
 
-            return res.send(responseBuilder(200, "Checkout calculation complete", {
-                basePrice: preview.basePrice,
-                discount: preview.discount,
-                finalPrice: preview.finalPrice
-            }));
-        } catch (error: any) { next(error); }
-    };
+      if (!eventId) throw new AppError("Event ID is required", 400);
 
-    submitPurchase = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            if (!req.user) throw new AppError("Authentication target context missing", 401);
-            
-            const extendedReq = req as Request & { file?: any };
-            if (!extendedReq.file) throw new AppError("Payment transaction proof file record must be uploaded", 400);
+      const qty = Math.max(1, parseInt(String(quantity || "1"), 10));
+      const isUsePoints = String(usePoints) === "true";
+      const couponId = useCouponId ? String(useCouponId).trim() : null;
 
-            const userId = (extendedReq.user as any).id;
+      const preview = await transactionService.calculateCheckoutPreview(
+        userId,
+        String(eventId),
+        qty,
+        couponId,
+        isUsePoints
+      );
 
-            const bodyPayload = {
-                eventId: extendedReq.body.eventId,
-                quantity: Number(extendedReq.body.quantity),
-                useCouponId: extendedReq.body.useCouponId || null,
-                usePoints: extendedReq.body.usePoints === "true" || extendedReq.body.usePoints === true
-            };
+      return res.status(200).send(
+        responseBuilder(200, "Preview calculated successfully", {
+          basePrice: preview.basePrice,
+          discount: preview.discount,
+          finalPrice: preview.finalPrice,
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
 
-            const validatedFields = await PurchaseTicketSchema.parseAsync(bodyPayload);
+  purchaseTicket = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) throw new AppError("Unauthorized", 401);
 
-            const stream = cloudinary.uploader.upload_stream(
-                { folder: "eventura/payment_proofs" },
-                async (err: any, result: any) => {
-                    if (err || !result) return next(new AppError("Cloudinary media stream save operation failed", 500, err));
+      const { eventId, quantity, useCouponId, usePoints } = req.body;
+      const file = req.file;
 
-                    try {
-                        const transaction = await transactionService.processTicketPurchase(
-                            userId, validatedFields, result.secure_url
-                        );
-                        return res.status(201).send(responseBuilder(201, "Ticket order processed successfully", transaction));
-                    } catch (transactionError) {
-                        return next(transactionError);
-                    }
-                }
-            );
+      if (!eventId) throw new AppError("Event ID is required", 400);
+      if (!file) throw new AppError("Payment proof image is required", 400);
 
-            Readable.from(extendedReq.file.buffer).pipe(stream);
-        } catch (error: any) { next(error); }
-    };
+      const qty = Math.max(1, parseInt(String(quantity || "1"), 10));
+      const isUsePoints = String(usePoints) === "true";
+      const couponId = useCouponId ? String(useCouponId).trim() : null;
+
+      const paymentProofUrl = file.path || file.filename || file.originalname;
+
+      const transaction = await transactionService.processTicketPurchase(
+        userId,
+        {
+          eventId: String(eventId),
+          quantity: qty,
+          useCouponId: couponId,
+          usePoints: isUsePoints,
+        },
+        paymentProofUrl
+      );
+
+      return res.status(201).send(
+        responseBuilder(201, "Ticket purchase submitted successfully", transaction)
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default new TransactionController();

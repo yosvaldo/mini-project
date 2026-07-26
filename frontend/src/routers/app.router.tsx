@@ -1,6 +1,8 @@
-import React from "react";
-import { Routes, Route, Navigate, Outlet } from "react-router-dom";
+import { Routes, Route, Outlet } from "react-router-dom";
 import useAuthStore from "../stores/authStore";
+import ProtectedRoute from "../components/ProtectedRoute";
+import GuestRoute from "../components/GuestRoute";
+
 import Navbar from "../components/Navbar";
 import HomePage from "../pages/home/HomePage";
 import EventsList from "../pages/events/EventsList";
@@ -11,33 +13,15 @@ import ProfilePage from "../pages/profile/ProfilePage";
 import DashboardOverview from "../pages/dashboard/DashboardOverview";
 import DashboardEvents from "../pages/dashboard/DashboardEvents";
 import DashboardTransactions from "../pages/dashboard/DashboardTransactions";
+import CreateEvent from "../pages/organizer/CreateEvent";
 import NotFoundPage from "../pages/errors/NotFoundPage";
 
-interface ProtectedRouteProps {
-  children: React.ReactNode;
-  allowedRole?: "CUSTOMER" | "ORGANIZER";
-}
-
-function ProtectedRoute({ children, allowedRole }: ProtectedRouteProps) {
-  const { token, user } = useAuthStore();
-
-  if (!token || !user) {
-    return <Navigate to="/login" replace />;
-  }
-
-  if (allowedRole && user.role !== allowedRole) {
-    return <Navigate to="/" replace />;
-  }
-
-  return <>{children}</>;
-}
-
 function MainLayout() {
-  const { user, signOut } = useAuthStore();
+  const { user, logout } = useAuthStore();
 
   return (
     <div className="min-h-screen bg-eventura-navy text-slate-100 flex flex-col">
-      <Navbar isLoggedIn={!!user} onLogout={signOut} />
+      <Navbar isLoggedIn={!!user} onLogout={logout} />
       <main className="flex-1 flex flex-col">
         <Outlet />
       </main>
@@ -51,8 +35,23 @@ export default function AppRouter() {
       <Route element={<MainLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/events" element={<EventsList />} />
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
+
+        <Route
+          path="/login"
+          element={
+            <GuestRoute>
+              <LoginPage />
+            </GuestRoute>
+          }
+        />
+        <Route
+          path="/register"
+          element={
+            <GuestRoute>
+              <RegisterPage />
+            </GuestRoute>
+          }
+        />
 
         <Route
           path="/checkout/:eventId"
@@ -85,6 +84,14 @@ export default function AppRouter() {
           element={
             <ProtectedRoute allowedRole="ORGANIZER">
               <DashboardEvents />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/dashboard/events/create"
+          element={
+            <ProtectedRoute allowedRole="ORGANIZER">
+              <CreateEvent />
             </ProtectedRoute>
           }
         />

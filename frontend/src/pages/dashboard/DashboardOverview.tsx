@@ -8,7 +8,7 @@ import { toast } from "sonner";
 
 interface EventItem {
   id: string;
-  title: string;
+  name: string;
   price: number;
   seats: number;
   availableSeats: number;
@@ -21,12 +21,12 @@ interface TransactionItem {
   quantity: number;
   status: "PENDING" | "DONE" | "REJECTED";
   createdAt: string;
-  event: { title: string };
+  event: { name: string };
   user: { fullName: string };
 }
 
 export default function DashboardOverview() {
-  const { token } = useAuthStore();
+  const { accessToken } = useAuthStore();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -46,7 +46,7 @@ export default function DashboardOverview() {
     const fetchMetrics = async () => {
       try {
         const res = await apiStatic.get("/dashboard/metrics", {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${accessToken}` }
         });
         setEvents(res.data.data.events);
         setTransactions(res.data.data.transactions);
@@ -56,12 +56,14 @@ export default function DashboardOverview() {
         setLoading(false);
       }
     };
-    fetchMetrics();
-  }, [token]);
+    if (accessToken) {
+      fetchMetrics();
+    }
+  }, [accessToken]);
 
   const filteredTransactions = useMemo(() => {
     return transactions.filter(t => 
-      t.event.title.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      t.event.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
       t.user.fullName.toLowerCase().includes(debouncedSearch.toLowerCase())
     );
   }, [transactions, debouncedSearch]);
@@ -246,7 +248,7 @@ export default function DashboardOverview() {
                   {filteredTransactions.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-950/40 transition">
                       <td className="py-3 px-4 whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString()}</td>
-                      <td className="py-3 px-4 font-bold text-white">{t.event.title}</td>
+                      <td className="py-3 px-4 font-bold text-white">{t.event.name}</td>
                       <td className="py-3 px-4">{t.user.fullName}</td>
                       <td className="py-3 px-4 text-center text-teal-400 font-bold">{t.quantity}</td>
                       <td className="py-3 px-4 text-right text-emerald-400">IDR {t.totalPrice.toLocaleString()}</td>

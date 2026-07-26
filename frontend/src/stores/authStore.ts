@@ -1,91 +1,95 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
-import { apiStatic, setAccessToken } from "../configs/api.config";
 import { toast } from "sonner";
-import type { AxiosError } from "axios";
+import axios from "axios";
+import { api } from "../utils/api.js"; 
 
-export interface UserSession {
+export interface User {
   id: string;
   email: string;
-  fullName: string;
   role: "CUSTOMER" | "ORGANIZER";
-  referralCode: string;
-}
-
-interface ErrorResponse {
-  message?: string;
-}
-
-interface SignUpPayload {
-  email: string;
-  role: "CUSTOMER" | "ORGANIZER";
-  password?: string;
-  referredByCode?: string;
+  fullName?: string;
+  referralCode?: string;
+  referredById?: string | null;
 }
 
 interface AuthState {
-  token: string | null;
-  user: UserSession | null;
-  signIn: (email: string, password: string, onSuccess?: () => void) => Promise<void>;
-  signUp: (payload: SignUpPayload, onSuccess?: () => void) => Promise<void>;
-  signOut: (onSuccess?: () => void) => Promise<void>;
+  user: User | null;
+  accessToken: string | null;
+  signUp: (
+    data: {
+      fullName: string;
+      email: string;
+      password: string;
+      confirmPassword: string;
+      role: "CUSTOMER" | "ORGANIZER";
+      referredByCode?: string;
+    },
+    onSuccess?: () => void
+  ) => Promise<void>;
+  login: (
+    data: { email: string; password: string },
+    onSuccess?: () => void
+  ) => Promise<void>;
+  logout: () => Promise<void>;
+  setAuth: (user: User | null, accessToken: string | null) => void;
 }
 
 const useAuthStore = create<AuthState>()(
   persist(
     (set) => ({
-      token: null,
       user: null,
+      accessToken: null,
 
-      signIn: async (email, password, onSuccess) => {
+      setAuth: (user, accessToken) => set({ user, accessToken }),
+
+      signUp: async (data, onSuccess) => {
         try {
-          const res = await apiStatic.post("/auth/sign-in", { email, password });
-          const { data } = res.data;
-          
-          const sessionUser: UserSession = {
-            id: String(data.user.id),
-            email: data.user.email,
-            fullName: data.user.fullName || data.user.email.split("@")[0],
-            role: data.user.role,
-            referralCode: data.user.referralCode,
-          };
-
-          set({ token: data.accessToken, user: sessionUser });
-          setAccessToken(data.accessToken);
-          
-          toast.success("Sign in successful!");
-          onSuccess?.();
-        } catch (error) {
-          const err = error as AxiosError<ErrorResponse>;
-          toast.error(err.response?.data?.message || "Sign in failed. Check your credentials.");
+          await api.post("/auth/sign-up", data); // Removed "const response ="
+          toast.success("Register successful, please login"); 
+          if (onSuccess) onSuccess();
+        } catch (error: unknown) {
+          let message = "Failed to create account.";
+          if (axios.isAxiosError(error) && error.response?.data?.message) {
+            message = error.response.data.message;
+          }
+          toast.error(message);
         }
       },
 
-      signUp: async (payload, onSuccess) => {
+      login: async (data, onSuccess) => {
         try {
-          await apiStatic.post("/auth/sign-up", payload);
-          toast.success("Sign up successful! Please sign in.");
-          onSuccess?.();
-        } catch (error) {
-          const err = error as AxiosError<ErrorResponse>;
-          toast.error(err.response?.data?.message || "Sign up failed. Please try again.");
+          const response = await api.post("/auth/sign-in", data);
+          const { accessToken, user } = response.data.data || {};
+          set({ user: user || null, accessToken: accessToken || null });
+          toast.success(response.data.message || "Logged in successfully!");
+          if (onSuccess) onSuccess();
+        } catch (error: unknown) {
+          let message = "Invalid email or password.";
+          if (axios.isAxiosError(error) && error.response?.data?.message) {
+            message = error.response.data.message;
+          }
+          toast.error(message);
         }
       },
 
-      signOut: async (onSuccess) => {
+      logout: async () => {
         try {
-          await apiStatic.post("/auth/sign-out").catch(() => {});
+          await api.post("/auth/sign-out");
+        } catch (error: unknown) {
+          console.error("Logout error:", error);
         } finally {
-          set({ token: null, user: null });
-          setAccessToken(null);
-          toast.success("Sign out successful!");
-          onSuccess?.();
+          set({ user: null, accessToken: null });
+          toast.success("Logged out successfully");
         }
       },
     }),
     {
-      name: "eventura-auth-storage",
-      partialize: (state) => ({ token: state.token, user: state.user }),
+      name: "auth-storage",
+      partialize: (state) => ({
+        user: state.user,
+        accessToken: state.accessToken,
+      }),
     }
   )
 );

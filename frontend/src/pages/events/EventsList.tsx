@@ -79,7 +79,7 @@ export default function EventsList() {
                   <div className="relative h-48 overflow-hidden bg-white/5">
                     <img
                       src={evt.imageUrl || "https://images.unsplash.com/photo-1514525253161-7a46d19cd819?q=80&w=800&auto=format&fit=crop"}
-                      alt={evt.name}
+                      alt={evt.name || "Event Image"}
                       className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
                     />
                     <div className="absolute top-3 left-3 bg-eventura-dark/80 backdrop-blur-md border border-white/10 px-3 py-1 rounded-full text-[9px] font-bold tracking-widest uppercase text-amber-400 flex items-center gap-1">
@@ -119,7 +119,7 @@ export default function EventsList() {
                           Pass Price
                         </span>
                         <span className="text-sm font-bold text-amber-400">
-                          {typeof evt.price === "number" ? `$${evt.price}` : evt.price}
+                          {typeof evt.price === "number" ? `IDR ${evt.price.toLocaleString()}` : evt.price}
                         </span>
                       </div>
 

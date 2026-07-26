@@ -8,7 +8,7 @@ import type { AxiosError } from "axios";
 
 interface EventItem {
   id: string;
-  title: string;
+  name: string;
   price: number;
   seats: number;
   availableSeats: number;
@@ -21,13 +21,13 @@ interface ServerError {
 }
 
 export default function DashboardEvents() {
-  const { token } = useAuthStore();
+  const { accessToken } = useAuthStore();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [showConfirmDelete, setShowConfirmDelete] = useState<string | null>(null);
 
-  const [title, setTitle] = useState("");
+  const [name, setName] = useState("");
   const [price, setPrice] = useState("");
   const [seats, setSeats] = useState("");
   const [date, setDate] = useState("");
@@ -35,13 +35,13 @@ export default function DashboardEvents() {
   const [submitting, setSubmitting] = useState(false);
 
   const fetchEvents = useCallback(async () => {
-    if (!token) {
+    if (!accessToken) {
       setLoading(false);
       return;
     }
     try {
       const res = await apiStatic.get("/dashboard/metrics", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       setEvents(res.data.data.events || []);
     } catch {
@@ -49,7 +49,7 @@ export default function DashboardEvents() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [accessToken]);
 
   useEffect(() => {
     let active = true;
@@ -66,7 +66,7 @@ export default function DashboardEvents() {
 
   const handleCreateEvent = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title || !price || !seats || !date || !location) {
+    if (!name || !price || !seats || !date || !location) {
       toast.error("All configuration parameters are required.");
       return;
     }
@@ -76,17 +76,17 @@ export default function DashboardEvents() {
       await apiStatic.post(
         "/events",
         {
-          title,
+          name,
           price: Number(price),
           seats: Number(seats),
           date: new Date(date).toISOString(),
           location,
         },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       toast.success("New production event node initialized successfully!");
       setShowModal(false);
-      setTitle(""); setPrice(""); setSeats(""); setDate(""); setLocation("");
+      setName(""); setPrice(""); setSeats(""); setDate(""); setLocation("");
       fetchEvents();
     } catch (err) {
       const error = err as AxiosError<ServerError>;
@@ -99,7 +99,7 @@ export default function DashboardEvents() {
   const handleDeleteEvent = async (id: string) => {
     try {
       await apiStatic.delete(`/events/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       toast.success("Event cluster pruned cleanly from database indexes.");
       setShowConfirmDelete(null);
@@ -151,7 +151,7 @@ export default function DashboardEvents() {
               <div key={ev.id} className="bg-slate-900 border border-slate-800 rounded-xl p-5 flex flex-col justify-between space-y-4 hover:border-slate-700 transition">
                 <div className="space-y-2">
                   <div className="flex justify-between items-start gap-2">
-                    <h3 className="font-bold text-base text-white line-clamp-1">{ev.title}</h3>
+                    <h3 className="font-bold text-base text-white line-clamp-1">{ev.name}</h3>
                     <button
                       onClick={() => setShowConfirmDelete(ev.id)}
                       className="text-slate-500 hover:text-rose-400 p-1 rounded transition"
@@ -194,8 +194,8 @@ export default function DashboardEvents() {
 
               <form onSubmit={handleCreateEvent} className="space-y-3 text-sm">
                 <div>
-                  <label className="block text-xs text-slate-400 mb-1 font-semibold">Event Descriptive Title</label>
-                  <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100 text-xs focus:outline-none focus:border-teal-500" required />
+                  <label className="block text-xs text-slate-400 mb-1 font-semibold">Event Descriptive Name</label>
+                  <input type="text" value={name} onChange={(e) => setName(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-slate-100 text-xs focus:outline-none focus:border-teal-500" required />
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <div>
