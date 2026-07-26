@@ -1,19 +1,26 @@
 import { Router } from "express";
-import { prisma } from "../libs/prisma.client.js";
+
+import eventController from "../controllers/event.controller.js";
+import { roleGuard, verifyToken } from "../middlewares/auth.middleware.js";
 
 const eventRoute = Router();
 
-eventRoute.get("/", async (_, res) => {
-  try {
-    const events = await prisma.event.findMany({
-      orderBy: { createdAt: "desc" },
-    });
-    
-    return res.status(200).json({ success: true, data: events });
-  } catch (error) {
-    console.error("Error fetching events:", error);
-    return res.status(500).json({ message: "Failed to fetch events from Neon DB" });
-  }
-});
+eventRoute.get("/", eventController.getAll);
+
+eventRoute.get("/:id", eventController.getById);
+
+eventRoute.post(
+    "/",
+    verifyToken("access"),
+    roleGuard("ORGANIZER"),
+    eventController.create,
+);
+
+eventRoute.patch(
+    "/:id",
+    verifyToken("access"),
+    roleGuard("ORGANIZER"),
+    eventController.update,
+);
 
 export default eventRoute;

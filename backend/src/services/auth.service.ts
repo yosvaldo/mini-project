@@ -1,40 +1,90 @@
-import authRepo from "../repositories/auth.repository.js"; 
-import userRepo from "../repositories/user.repository.js"; 
-import TokenService from "./token.service.js";
-import GoogleAuthService from "./google.auth.service.js";
+import UserRepository from "../repositories/user.repository.js";
 import { comparePassword } from "../libs/bcrypt.js";
-import { ACCESS_SECRET, REFRESH_SECRET, ACCESS_EXPIRES_IN, REFRESH_EXPIRES_IN } from "../libs/jwt.js";
+import TokenService from "./token.service.js";
+import { prisma } from "../libs/prisma.client.js";
+import {
+  ACCESS_SECRET,
+  ACCESS_EXPIRES_IN,
+  REFRESH_SECRET,
+  REFRESH_EXPIRES_IN,
+} from "../libs/jwt.js";
 import AppError from "../errors/app.error.js";
-import type { Role } from "../generated/prisma/enums.js";
 
-class AuthService {
-    async signIn(email: string, plain: string) {
-        const user = await userRepo.find({ email });
-        if (!user || !user.password) throw new AppError("Invalid credentials", 401);
+export class AuthService {
+  static async signIn(email: string, plainPassword: string) {
+    const user = await prisma.user.findUnique({
+      where: { email },
+      include: {
+        points: { where: { isUsed: false, expiresAt: { gte: new Date() } } },
+        coupons: { where: { isUsed: false, expiresAt: { gte: new Date() } } },
+      }
+    });
 
-        const match = await comparePassword(plain, user.password);
-        if (!match) throw new AppError("Invalid credentials", 401);
-
-        const accessToken = TokenService.generate({ id: String(user.id), role: user.role }, ACCESS_SECRET!, ACCESS_EXPIRES_IN!);
-        const refreshToken = TokenService.generate({ id: String(user.id) }, REFRESH_SECRET!, REFRESH_EXPIRES_IN!);
-
-        return { accessToken, refreshToken };
+    if (!user) {
+      throw new AppError("Invalid email or password", 401);
     }
 
-    async googleSignIn(idToken: string, role?: string) {
-        const assignedRole = (role || "USER") as Role;
-        return await GoogleAuthService.verifyIdToken(idToken, assignedRole);
+    if (!user.password) {
+      throw new AppError("Account password not set or logged in via OAuth", 400);
     }
 
-    async refreshAccessToken(userId: number | string) {
-        const queryId = typeof userId === "string" ? Number(userId) || userId : userId;
-        const user = await userRepo.find({ id: queryId as any });
-        if (!user) throw new AppError("User context not found", 401);
-
-        const accessToken = TokenService.generate({ id: String(user.id), role: user.role }, ACCESS_SECRET!, ACCESS_EXPIRES_IN!);
-        const refreshToken = TokenService.generate({ id: String(user.id) }, REFRESH_SECRET!, REFRESH_EXPIRES_IN!);
-        return { user, accessToken, refreshToken };
+    const isMatch = await comparePassword(plainPassword, user.password);
+    if (!isMatch) {
+      throw new AppError("Invalid email or password", 401);
     }
+
+    const payload = { id: user.id, role: user.role };
+    const accessToken = TokenService.generate(
+      payload,
+      ACCESS_SECRET!,
+      ACCESS_EXPIRES_IN || "15m"
+    );
+    const refreshToken = TokenService.generate(
+      payload,
+      REFRESH_SECRET!,
+      REFRESH_EXPIRES_IN || "7d"
+    );
+
+    const totalPoints = user.points?.reduce((acc, curr) => acc + curr.amount, 0) || 0;
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+      user: { ...userWithoutPassword, totalPoints },
+      accessToken,
+      refreshToken
+    };
+  }
+
+  static async refreshAccessToken(userId: string) {
+    const user = await UserRepository.find({ id: userId });
+    if (!user) {
+      throw new AppError("User not found", 404);
+    }
+
+    const payload = { id: user.id, role: user.role };
+    const accessToken = TokenService.generate(
+      payload,
+      ACCESS_SECRET!,
+      ACCESS_EXPIRES_IN || "15m"
+    );
+    const refreshToken = TokenService.generate(
+      payload,
+      REFRESH_SECRET!,
+      REFRESH_EXPIRES_IN || "7d"
+    );
+
+    const { password, ...userWithoutPassword } = user;
+
+    return {
+      user: userWithoutPassword,
+      accessToken,
+      refreshToken,
+    };
+  }
+
+  static async googleSignIn(_idToken: string): Promise<{ user: any; accessToken: string; refreshToken: string }> {
+    throw new AppError("Google OAuth login is not yet configured on this server", 501);
+  }
 }
 
-export default new AuthService();
+export default AuthService;

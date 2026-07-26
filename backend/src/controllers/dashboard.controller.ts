@@ -5,13 +5,13 @@ export async function getDashboardMetrics(req: Request, res: Response, next: Nex
   try {
     const organizerId = req.user?.id;
 
-    const transactions = await (prisma as any).transaction.findMany({
+    const transactions = await prisma.transaction.findMany({
       where: { event: { organizerId } },
       include: { event: true, user: true },
       orderBy: { createdAt: "asc" }
     });
 
-    const events = await (prisma as any).event.findMany({
+    const events = await prisma.event.findMany({
       where: { organizerId },
       include: { _count: { select: { transactions: true } } }
     });
@@ -30,7 +30,7 @@ export async function updateTransactionStatusAtomic(req: Request, res: Response,
     const { transactionId } = req.params;
     const { status } = req.body;
 
-    const result = await (prisma as any).$transaction(async (tx: any) => {
+    const result = await prisma.$transaction(async (tx: any) => {
       const transaction = await tx.transaction.findUnique({
         where: { id: transactionId },
         include: { event: true }

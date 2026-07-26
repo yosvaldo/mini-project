@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, X, PlusCircle } from 'lucide-react';
+import useAuthStore from '../stores/authStore';
 
 interface NavbarProps {
   isLoggedIn?: boolean;
@@ -11,6 +12,9 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, onLogout }) 
   const location = useLocation();
   const navigate = useNavigate();
   const [isOpen, setIsOpen] = useState(false);
+
+  const { user } = useAuthStore();
+  const isOrganizer = user?.role === 'ORGANIZER';
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -53,6 +57,32 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, onLogout }) 
               {link.name}
             </Link>
           ))}
+
+          {isLoggedIn && isOrganizer && (
+            <Link
+              to="/dashboard/events/create"
+              className={`flex items-center gap-2 text-[10px] font-bold uppercase tracking-[0.2em] px-3.5 py-2 rounded-lg border transition-all ${
+                isActive('/dashboard/events/create')
+                  ? 'bg-luxury-gold text-eventura-dark border-luxury-gold'
+                  : 'border-luxury-gold/50 text-luxury-gold hover:bg-luxury-gold/10'
+              }`}
+            >
+              <PlusCircle className="w-3.5 h-3.5" />
+              <span>Create Event</span>
+            </Link>
+          )}
+
+          {isLoggedIn && isOrganizer && (
+            <Link to="/dashboard" className={linkClass('/dashboard')}>
+              Dashboard
+            </Link>
+          )}
+
+          {isLoggedIn && (
+            <Link to="/profile" className={linkClass('/profile')}>
+              Profile
+            </Link>
+          )}
 
           {isLoggedIn ? (
             <button
@@ -97,6 +127,37 @@ export const Navbar: React.FC<NavbarProps> = ({ isLoggedIn = false, onLogout }) 
               {link.name}
             </Link>
           ))}
+
+          {isLoggedIn && isOrganizer && (
+            <Link
+              to="/dashboard/events/create"
+              onClick={() => setIsOpen(false)}
+              className="flex items-center justify-center gap-2 bg-luxury-gold text-eventura-dark font-bold text-[10px] uppercase tracking-[0.2em] py-3 rounded-lg"
+            >
+              <PlusCircle className="w-4 h-4" />
+              <span>Create Event</span>
+            </Link>
+          )}
+
+          {isLoggedIn && isOrganizer && (
+            <Link
+              to="/dashboard"
+              onClick={() => setIsOpen(false)}
+              className={linkClass('/dashboard')}
+            >
+              Dashboard
+            </Link>
+          )}
+
+          {isLoggedIn && (
+            <Link
+              to="/profile"
+              onClick={() => setIsOpen(false)}
+              className={linkClass('/profile')}
+            >
+              Profile
+            </Link>
+          )}
 
           {isLoggedIn ? (
             <button

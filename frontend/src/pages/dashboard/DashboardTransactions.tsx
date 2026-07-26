@@ -13,7 +13,7 @@ interface TransactionItem {
   status: "PENDING" | "DONE" | "REJECTED";
   createdAt: string;
   paymentProofUrl?: string;
-  event: { title: string };
+  event: { name: string };
   user: { fullName: string; email: string };
 }
 
@@ -22,20 +22,20 @@ interface ServerError {
 }
 
 export default function DashboardTransactions() {
-  const { token } = useAuthStore();
+  const { accessToken } = useAuthStore();
   const [txs, setTxs] = useState<TransactionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeProofUrl, setActiveProofUrl] = useState<string | null>(null);
   const [processingId, setProcessingId] = useState<string | null>(null);
 
   const fetchTxs = useCallback(async () => {
-    if (!token) {
+    if (!accessToken) {
       setLoading(false);
       return;
     }
     try {
       const res = await apiStatic.get("/dashboard/metrics", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${accessToken}` },
       });
       setTxs(res.data.data.transactions || []);
     } catch {
@@ -43,7 +43,7 @@ export default function DashboardTransactions() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [accessToken]);
 
   useEffect(() => {
     let active = true;
@@ -64,7 +64,7 @@ export default function DashboardTransactions() {
       await apiStatic.patch(
         `/transactions/${id}/status`,
         { status: action === "approve" ? "DONE" : "REJECTED" },
-        { headers: { Authorization: `Bearer ${token}` } }
+        { headers: { Authorization: `Bearer ${accessToken}` } }
       );
       toast.success(`Transaction block mutation finalized: ${action.toUpperCase()}`);
       fetchTxs();
@@ -116,8 +116,8 @@ export default function DashboardTransactions() {
                 <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
                   {txs.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-950/30 transition">
-                      <td className="py-3 px-4 text-slate-500 font-mono tracking-tight text-[11px] max-w-[120px] truncate">{t.id}</td>
-                      <td className="py-3 px-4 text-white font-sans font-bold">{t.event?.title}</td>
+                      <td className="py-3 px-4 text-slate-500 font-mono tracking-tight text-[11px] max-w-30 truncate">{t.id}</td>
+                      <td className="py-3 px-4 text-white font-sans font-bold">{t.event?.name}</td>
                       <td className="py-3 px-4 font-sans">
                         <div className="text-slate-200 font-semibold">{t.user?.fullName}</div>
                         <div className="text-[10px] text-slate-500 font-mono">{t.user?.email}</div>

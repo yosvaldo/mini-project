@@ -7,8 +7,10 @@ import { toast } from "sonner";
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { signUp } = useAuthStore();
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [role, setRole] = useState<"CUSTOMER" | "ORGANIZER">("CUSTOMER");
   const [referredByCode, setReferredByCode] = useState("");
   const [loading, setLoading] = useState(false);
@@ -18,8 +20,21 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!fullName || !email || !password || !confirmPassword) {
       toast.error("Please fill in all required fields.");
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      toast.error("Passwords do not match.");
+      return;
+    }
+
+    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
+    if (!passwordRegex.test(password)) {
+      toast.error(
+        "Password must be at least 6 characters long and contain at least one letter and one number."
+      );
       return;
     }
 
@@ -27,12 +42,15 @@ export default function RegisterPage() {
 
     await signUp(
       {
+        fullName,
         email,
         password,
+        confirmPassword,
         role,
-        referredByCode: referredByCode || undefined,
+        referredByCode: referredByCode.trim() || undefined,
       },
       () => {
+        toast.success("Account registered successfully! Please log in.");
         navigate("/login");
       }
     );
@@ -50,7 +68,7 @@ export default function RegisterPage() {
         />
       </Helmet>
 
-      <div className="min-h-screen bg-eventura-dark flex items-center justify-center p-4 pt-20 pb-12">
+      <div className="min-h-screen bg-eventura-dark flex items-center justify-center p-4 pt-24 pb-12">
         <div className={`w-full max-w-md ${glassStyle} p-8 sm:p-10 rounded-[28px]`}>
           <div className="text-center mb-6">
             <img
@@ -67,6 +85,20 @@ export default function RegisterPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Full Name
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="John Doe"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+            </div>
+
             <div>
               <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
                 Email Address
@@ -91,6 +123,20 @@ export default function RegisterPage() {
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+            </div>
+
+            <div>
+              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                required
+                placeholder="••••••••"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
                 className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
               />
             </div>
