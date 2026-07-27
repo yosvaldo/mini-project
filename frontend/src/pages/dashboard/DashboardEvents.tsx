@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { apiStatic } from "../../configs/api.config";
+import { api } from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
 import { Plus, Calendar, Landmark, Trash2, X, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
@@ -40,7 +40,7 @@ export default function DashboardEvents() {
       return;
     }
     try {
-      const res = await apiStatic.get("/dashboard/metrics", {
+      const res = await api.get("/dashboard/metrics", {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setEvents(res.data.data.events || []);
@@ -73,7 +73,7 @@ export default function DashboardEvents() {
 
     setSubmitting(true);
     try {
-      await apiStatic.post(
+      await api.post(
         "/events",
         {
           name,
@@ -98,7 +98,7 @@ export default function DashboardEvents() {
 
   const handleDeleteEvent = async (id: string) => {
     try {
-      await apiStatic.delete(`/events/${id}`, {
+      await api.delete(`/events/${id}`, {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       toast.success("Event cluster pruned cleanly from database indexes.");
@@ -170,7 +170,7 @@ export default function DashboardEvents() {
                 <div className="border-t border-slate-800/80 pt-3 grid grid-cols-2 gap-2 text-xs">
                   <div>
                     <span className="block text-[10px] uppercase text-slate-500 font-medium">Pricing Threshold</span>
-                    <span className="font-bold text-teal-400 font-mono">IDR {ev.price.toLocaleString()}</span>
+                    <span className="font-bold text-teal-400 font-mono">IDR {(ev.price ?? 0).toLocaleString()}</span>
                   </div>
                   <div>
                     <span className="block text-[10px] uppercase text-slate-500 font-medium">Availability Vector</span>

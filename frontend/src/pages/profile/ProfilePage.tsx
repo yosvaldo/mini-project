@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Helmet } from "react-helmet-async";
-import { apiStatic } from "../../configs/api.config";
+import { api } from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
 import { toast } from "sonner";
 
@@ -22,6 +22,8 @@ interface PurchasedTicket {
   id: string;
   quantity: number;
   finalPrice: number;
+  paymentProof?: string | null;
+  status: "PENDING" | "DONE" | "REJECTED";
   createdAt: string;
   event: {
     id: string;
@@ -50,7 +52,7 @@ export default function ProfilePage() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        const res = await apiStatic.get("/auth/me", {
+        const res = await api.get("/auth/me", {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         setProfile(res.data?.data || res.data);
@@ -84,14 +86,39 @@ export default function ProfilePage() {
     (c) => !c.isUsed && new Date(c.expiresAt) > now
   ).length;
 
+  const renderStatusBadge = (status: PurchasedTicket["status"]) => {
+    switch (status) {
+      case "PENDING":
+        return (
+          <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-amber-950 text-amber-400 border border-amber-900">
+            Awaiting Organizer confirmation
+          </span>
+        );
+      case "DONE":
+        return (
+          <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-950 text-emerald-400 border border-emerald-900">
+            Confirmed
+          </span>
+        );
+      case "REJECTED":
+        return (
+          <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-red-950 text-red-400 border border-red-900">
+            Rejected
+          </span>
+        );
+      default:
+        return (
+          <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-slate-800 text-slate-300">
+            {status}
+          </span>
+        );
+    }
+  };
+
   return (
     <>
       <Helmet>
         <title>{`${user.fullName || user.email}'s Profile | Eventura`}</title>
-        <meta
-          name="description"
-          content="Review your purchased tickets, active point balances, and referral discount coupon expirations."
-        />
       </Helmet>
 
       <div className="container mx-auto px-4 pt-28 pb-16 max-w-4xl text-white space-y-8">
@@ -131,7 +158,6 @@ export default function ProfilePage() {
           </div>
         </div>
 
-        {/* Overview Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-5 bg-slate-900 border border-slate-800 rounded-xl">
             <span className="block text-xs uppercase font-semibold text-slate-400 mb-1">
@@ -140,9 +166,6 @@ export default function ProfilePage() {
             <span className="text-3xl font-extrabold text-teal-400">
               {loading ? "..." : `${activePointsBalance.toLocaleString()} PTS`}
             </span>
-            <p className="text-xs text-slate-500 mt-1">
-              Earn 10,000 pts whenever someone registers with your code.
-            </p>
           </div>
 
           <div className="p-5 bg-slate-900 border border-slate-800 rounded-xl">
@@ -152,97 +175,6 @@ export default function ProfilePage() {
             <span className="text-3xl font-extrabold text-emerald-400">
               {loading ? "..." : `${activeCouponsCount} Active`}
             </span>
-            <p className="text-xs text-slate-500 mt-1">
-              10% discount coupons awarded from referral registration.
-            </p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3">
-            <h2 className="text-base font-bold text-slate-200">
-              Points History & Expiration
-            </h2>
-            {pointsList.length === 0 ? (
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-500 text-center">
-                No point records available.
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                {pointsList.map((pt) => {
-                  const isExpired = new Date(pt.expiresAt) < now;
-                  return (
-                    <div
-                      key={pt.id}
-                      className="flex justify-between items-center bg-slate-950 p-2.5 rounded border border-slate-800 text-xs"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-200 block">
-                          +{pt.amount.toLocaleString()} PTS
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          Expires: {new Date(pt.expiresAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          pt.isUsed
-                            ? "bg-slate-800 text-slate-500"
-                            : isExpired
-                            ? "bg-red-950 text-red-400 border border-red-900"
-                            : "bg-emerald-950 text-emerald-400 border border-emerald-900"
-                        }`}
-                      >
-                        {pt.isUsed ? "Used" : isExpired ? "Expired" : "Active"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 p-5 rounded-xl space-y-3">
-            <h2 className="text-base font-bold text-slate-200">
-              Coupons & Expiration
-            </h2>
-            {couponsList.length === 0 ? (
-              <div className="p-4 bg-slate-950 border border-slate-800 rounded-lg text-xs text-slate-500 text-center">
-                No referral coupons available.
-              </div>
-            ) : (
-              <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
-                {couponsList.map((cp) => {
-                  const isExpired = new Date(cp.expiresAt) < now;
-                  return (
-                    <div
-                      key={cp.id}
-                      className="flex justify-between items-center bg-slate-950 p-2.5 rounded border border-slate-800 text-xs"
-                    >
-                      <div>
-                        <span className="font-bold text-slate-200 block">
-                          {cp.discountPct}% Discount Coupon
-                        </span>
-                        <span className="text-[10px] text-slate-400">
-                          Expires: {new Date(cp.expiresAt).toLocaleDateString()}
-                        </span>
-                      </div>
-                      <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
-                          cp.isUsed
-                            ? "bg-slate-800 text-slate-500"
-                            : isExpired
-                            ? "bg-red-950 text-red-400 border border-red-900"
-                            : "bg-teal-950 text-teal-400 border border-teal-900"
-                        }`}
-                      >
-                        {cp.isUsed ? "Used" : isExpired ? "Expired" : "Active"}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </div>
 
@@ -263,30 +195,53 @@ export default function ProfilePage() {
               </p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-4">
               {transactionsList.map((tx) => (
                 <div
                   key={tx.id}
                   className="bg-slate-950 border border-slate-800 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
                 >
-                  <div>
+                  <div className="space-y-1.5">
                     <h3 className="font-bold text-teal-400 text-base">
                       {tx.event?.name || "Event Ticket"}
                     </h3>
-                    <p className="text-xs text-slate-400 mt-1">
+                    <p className="text-xs text-slate-400">
                       📅 {tx.event?.date ? new Date(tx.event.date).toLocaleDateString() : "N/A"} | 📍 {tx.event?.location || "N/A"}
                     </p>
-                    <p className="text-xs text-slate-500 mt-1">
+                    <p className="text-xs text-slate-500">
                       Purchased on: {new Date(tx.createdAt).toLocaleDateString()}
                     </p>
+                    
+                    <div className="pt-1 flex items-center gap-2">
+                      <span className="text-xs text-slate-400">Payment Status:</span>
+                      {renderStatusBadge(tx.status)}
+                    </div>
                   </div>
-                  <div className="text-left md:text-right border-t md:border-t-0 border-slate-800 pt-2 md:pt-0 w-full md:w-auto">
-                    <span className="text-xs text-slate-400 block">
-                      Quantity: {tx.quantity} Ticket(s)
-                    </span>
-                    <span className="text-sm font-bold text-white">
-                      Total: IDR {tx.finalPrice.toLocaleString()}
-                    </span>
+
+                  <div className="text-left md:text-right border-t md:border-t-0 border-slate-800 pt-3 md:pt-0 w-full md:w-auto flex flex-col items-start md:items-end justify-between space-y-3">
+                    <div>
+                      <span className="text-xs text-slate-400 block">
+                        Quantity: {tx.quantity} Ticket(s)
+                      </span>
+                      <span className="text-sm font-bold text-white block">
+                        Total: IDR {tx.finalPrice.toLocaleString()}
+                      </span>
+                    </div>
+
+                    {tx.paymentProof && (
+                      <a
+                        href={tx.paymentProof}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-400 hover:text-teal-300 bg-slate-900 hover:bg-slate-800 border border-teal-500/30 hover:border-teal-400/50 px-3 py-1.5 rounded transition cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                        </svg>
+                        View Payment Proof
+                      </a>
+                    )}
                   </div>
                 </div>
               ))}

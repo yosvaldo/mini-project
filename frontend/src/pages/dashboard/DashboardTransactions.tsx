@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { apiStatic } from "../../configs/api.config";
+import { api } from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
 import { Eye, X, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ export default function DashboardTransactions() {
       return;
     }
     try {
-      const res = await apiStatic.get("/dashboard/metrics", {
+      const res = await api.get("/dashboard/metrics", {
         headers: { Authorization: `Bearer ${accessToken}` },
       });
       setTxs(res.data.data.transactions || []);
@@ -61,7 +61,7 @@ export default function DashboardTransactions() {
   const updateStatus = async (id: string, action: "approve" | "reject") => {
     setProcessingId(id);
     try {
-      await apiStatic.patch(
+      await api.patch(
         `/transactions/${id}/status`,
         { status: action === "approve" ? "DONE" : "REJECTED" },
         { headers: { Authorization: `Bearer ${accessToken}` } }
@@ -116,21 +116,21 @@ export default function DashboardTransactions() {
                 <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
                   {txs.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-950/30 transition">
-                      <td className="py-3 px-4 text-slate-500 font-mono tracking-tight text-[11px] max-w-30 truncate">{t.id}</td>
-                      <td className="py-3 px-4 text-white font-sans font-bold">{t.event?.name}</td>
+                      <td className="py-3 px-4 text-slate-500 font-mono tracking-tight text-[11px] max-w-30 truncate">{t.id ?? "-"}</td>
+                      <td className="py-3 px-4 text-white font-sans font-bold">{t.event?.name ?? "N/A"}</td>
                       <td className="py-3 px-4 font-sans">
-                        <div className="text-slate-200 font-semibold">{t.user?.fullName}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">{t.user?.email}</div>
+                        <div className="text-slate-200 font-semibold">{t.user?.fullName ?? "Unknown"}</div>
+                        <div className="text-[10px] text-slate-500 font-mono">{t.user?.email ?? "-"}</div>
                       </td>
-                      <td className="py-3 px-4 text-center text-teal-400 font-bold">{t.quantity}</td>
-                      <td className="py-3 px-4 text-right text-emerald-400 font-bold">IDR {t.totalPrice.toLocaleString()}</td>
+                      <td className="py-3 px-4 text-center text-teal-400 font-bold">{t.quantity ?? 0}</td>
+                      <td className="py-3 px-4 text-right text-emerald-400 font-bold">IDR {(t.totalPrice ?? 0).toLocaleString()}</td>
                       <td className="py-3 px-4 text-center">
                         <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${
                           t.status === "DONE" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
                           t.status === "REJECTED" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
                           "bg-amber-500/10 text-amber-400 border border-amber-500/20"
                         }`}>
-                          {t.status}
+                          {t.status ?? "PENDING"}
                         </span>
                       </td>
                       <td className="py-3 px-4">

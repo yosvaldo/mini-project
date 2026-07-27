@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
 import { toast } from "sonner";
-import { api } from "../../utils/api";
+import { api } from "../../configs/api.config";
 import axios from "axios";
 
 export default function CreateEvent() {
@@ -11,12 +11,10 @@ export default function CreateEvent() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [category, setCategory] = useState("MUSIC");
+  const [city, setCity] = useState("Jakarta");
   const [location, setLocation] = useState("");
-  const [startDate, setStartDate] = useState("");
-  const [endDate, setEndDate] = useState("");
+  const [eventDate, setEventDate] = useState("");
   
-  const [ticketName, setTicketName] = useState("General Admission");
   const [price, setPrice] = useState<number>(0);
   const [capacity, setCapacity] = useState<number>(100);
 
@@ -26,7 +24,7 @@ export default function CreateEvent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !description || !location || !startDate || !endDate) {
+    if (!name || !description || !location || !eventDate) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -37,13 +35,11 @@ export default function CreateEvent() {
       const payload = {
         name,
         description,
-        category,
+        city,
         location,
-        startDate: new Date(startDate).toISOString(),
-        endDate: new Date(endDate).toISOString(),
+        startDate: new Date(eventDate).toISOString(),
         tickets: [
           {
-            name: ticketName,
             price: Number(price),
             capacity: Number(capacity),
           },
@@ -52,7 +48,7 @@ export default function CreateEvent() {
 
       await api.post("/events", payload);
       toast.success("Event created successfully!");
-      navigate("/organizer/dashboard"); 
+      navigate("/dashboard"); 
     } catch (error: unknown) {
       let message = "Failed to create event.";
       if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -104,18 +100,18 @@ export default function CreateEvent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Category
+                    City
                   </label>
                   <select
-                    value={category}
-                    onChange={(e) => setCategory(e.target.value)}
+                    value={city}
+                    onChange={(e) => setCity(e.target.value)}
                     className="w-full bg-eventura-navy p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all cursor-pointer"
                   >
-                    <option value="MUSIC">Music & Concerts</option>
-                    <option value="ARTS">Arts & Theater</option>
-                    <option value="BUSINESS">Business & Tech</option>
-                    <option value="SPORTS">Sports & Fitness</option>
-                    <option value="OTHER">Other</option>
+                    <option value="Bali">Bali</option>
+                    <option value="Bandung">Bandung</option>
+                    <option value="Jakarta">Jakarta</option>
+                    <option value="Surabaya">Surabaya</option>
+                    <option value="Yogyakarta">Yogyakarta</option>
                   </select>
                 </div>
 
@@ -126,7 +122,7 @@ export default function CreateEvent() {
                   <input
                     type="text"
                     required
-                    placeholder="e.g. Grand Ballroom, Jakarta"
+                    placeholder="e.g. Grand Ballroom"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
                     className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
@@ -154,32 +150,17 @@ export default function CreateEvent() {
                 2. Date & Schedule
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Start Date & Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={startDate}
-                    onChange={(e) => setStartDate(e.target.value)}
-                    className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all scheme:dark"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    End Date & Time
-                  </label>
-                  <input
-                    type="datetime-local"
-                    required
-                    value={endDate}
-                    onChange={(e) => setEndDate(e.target.value)}
-                    className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all scheme:dark"
-                  />
-                </div>
+              <div>
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
+                  Event Date & Time
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={eventDate}
+                  onChange={(e) => setEventDate(e.target.value)}
+                  className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all scheme:dark"
+                />
               </div>
             </div>
 
@@ -188,20 +169,7 @@ export default function CreateEvent() {
                 3. Initial Ticket Tier
               </h2>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div>
-                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Tier Name
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={ticketName}
-                    onChange={(e) => setTicketName(e.target.value)}
-                    className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all"
-                  />
-                </div>
-
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
                     Price (IDR)

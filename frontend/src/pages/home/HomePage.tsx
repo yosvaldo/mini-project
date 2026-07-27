@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { Ticket, Sparkles, ArrowRight } from "lucide-react";
+import { Ticket, Sparkles } from "lucide-react";
 
 export default function HomePage() {
   return (
@@ -35,13 +35,6 @@ export default function HomePage() {
             >
               <Ticket className="w-4 h-4" />
               Explore Concerts
-            </Link>
-            <Link
-              to="/register"
-              className="w-full sm:w-auto bg-white/5 hover:bg-white/10 text-white font-bold text-xs uppercase tracking-widest px-8 py-3.5 rounded-xl border border-white/10 transition-all flex items-center justify-center gap-2"
-            >
-              Get Started
-              <ArrowRight className="w-4 h-4" />
             </Link>
           </div>
         </div>

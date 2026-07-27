@@ -2,7 +2,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import { toast } from "sonner";
 import axios from "axios";
-import { api } from "../utils/api.js"; 
+import { api, setAccessToken } from "../configs/api.config";
 
 export interface User {
   id: string;
@@ -13,24 +13,20 @@ export interface User {
   referredById?: string | null;
 }
 
+export interface RegisterPayload {
+  fullName: string;
+  email: string;
+  password: string;
+  confirmPassword?: string;
+  role: "CUSTOMER" | "ORGANIZER";
+  referredByCode?: string;
+}
+
 interface AuthState {
   user: User | null;
   accessToken: string | null;
-  signUp: (
-    data: {
-      fullName: string;
-      email: string;
-      password: string;
-      confirmPassword: string;
-      role: "CUSTOMER" | "ORGANIZER";
-      referredByCode?: string;
-    },
-    onSuccess?: () => void
-  ) => Promise<void>;
-  login: (
-    data: { email: string; password: string },
-    onSuccess?: () => void
-  ) => Promise<void>;
+  signUp: (data: RegisterPayload, onSuccess?: () => void) => Promise<void>;
+  login: (data: { email: string; password: string }, onSuccess?: () => void) => Promise<void>;
   logout: () => Promise<void>;
   setAuth: (user: User | null, accessToken: string | null) => void;
 }
@@ -41,15 +37,18 @@ const useAuthStore = create<AuthState>()(
       user: null,
       accessToken: null,
 
-      setAuth: (user, accessToken) => set({ user, accessToken }),
+      setAuth: (user, accessToken) => {
+        setAccessToken(accessToken); 
+        set({ user, accessToken });
+      },
 
       signUp: async (data, onSuccess) => {
         try {
-          await api.post("/auth/sign-up", data); // Removed "const response ="
-          toast.success("Register successful, please login"); 
+          await api.post("/auth/sign-up", data);
+
           if (onSuccess) onSuccess();
         } catch (error: unknown) {
-          let message = "Failed to create account.";
+          let message = "Failed to register account.";
           if (axios.isAxiosError(error) && error.response?.data?.message) {
             message = error.response.data.message;
           }
@@ -61,8 +60,11 @@ const useAuthStore = create<AuthState>()(
         try {
           const response = await api.post("/auth/sign-in", data);
           const { accessToken, user } = response.data.data || {};
+          
+          setAccessToken(accessToken || null); 
           set({ user: user || null, accessToken: accessToken || null });
-          toast.success(response.data.message || "Logged in successfully!");
+
+          toast.success("Logged in successfully!");
           if (onSuccess) onSuccess();
         } catch (error: unknown) {
           let message = "Invalid email or password.";
@@ -79,6 +81,7 @@ const useAuthStore = create<AuthState>()(
         } catch (error: unknown) {
           console.error("Logout error:", error);
         } finally {
+          setAccessToken(null);
           set({ user: null, accessToken: null });
           toast.success("Logged out successfully");
         }
@@ -86,10 +89,7 @@ const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
-      partialize: (state) => ({
-        user: state.user,
-        accessToken: state.accessToken,
-      }),
+      partialize: (state) => ({ user: state.user }), 
     }
   )
 );

@@ -2,6 +2,8 @@ import type { Request, Response, NextFunction } from "express";
 import transactionService from "../services/transaction.service.js";
 import AppError from "../errors/app.error.js";
 import { responseBuilder } from "../utils/response-builder.util.js";
+import Cloudinary from "../libs/cloudinary.js";
+import { Readable } from "stream";
 
 class TransactionController {
   getPreview = async (req: Request, res: Response, next: NextFunction) => {
@@ -52,7 +54,22 @@ class TransactionController {
       const isUsePoints = String(usePoints) === "true";
       const couponId = useCouponId ? String(useCouponId).trim() : null;
 
-      const paymentProofUrl = file.path || file.filename || file.originalname;
+      const uploadToCloudinary = (): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const stream = Cloudinary.uploader.upload_stream(
+            { folder: "eventura_file_handling/payment_proofs" },
+            (err, result) => {
+              if (err || !result) {
+                return reject(new AppError("Failed to upload payment proof to Cloudinary", 500));
+              }
+              resolve(result.secure_url);
+            }
+          );
+          Readable.from(file.buffer).pipe(stream);
+        });
+      };
+
+      const paymentProofUrl = await uploadToCloudinary();
 
       const transaction = await transactionService.processTicketPurchase(
         userId,

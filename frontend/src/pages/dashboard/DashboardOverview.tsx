@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
+import axios from "axios";
 import { Helmet } from "react-helmet-async";
-import { apiStatic } from "../../configs/api.config";
+import api from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, AreaChart, Area } from "recharts";
-import { Calendar, DollarSign, Ticket, Layers, Search, AlertCircle } from "lucide-react";
+import { Calendar, DollarSign, Ticket, Layers, Search, AlertCircle, ExternalLink } from "lucide-react";
 import { toast } from "sonner";
 
 interface EventItem {
@@ -21,6 +22,7 @@ interface TransactionItem {
   quantity: number;
   status: "PENDING" | "DONE" | "REJECTED";
   createdAt: string;
+  paymentProof?: string; 
   event: { name: string };
   user: { fullName: string };
 }
@@ -44,27 +46,33 @@ export default function DashboardOverview() {
 
   useEffect(() => {
     const fetchMetrics = async () => {
+      if (!accessToken || typeof accessToken !== "string" || accessToken.trim() === "") {
+        setLoading(false);
+        return;
+      }
+
       try {
-        const res = await apiStatic.get("/dashboard/metrics", {
-          headers: { Authorization: `Bearer ${accessToken}` }
-        });
-        setEvents(res.data.data.events);
-        setTransactions(res.data.data.transactions);
-      } catch {
-        toast.error("Could not populate dashboard data systems structures.");
+        setLoading(true);
+        const res = await api.get("/dashboard/metrics");
+        setEvents(res.data?.data?.events ?? []);
+        setTransactions(res.data?.data?.transactions ?? []);
+      } catch (err: unknown) {
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          toast.error("Session expired or unauthorized access.");
+        } else {
+          toast.error("Could not populate dashboard data systems structures.");
+        }
       } finally {
         setLoading(false);
       }
     };
-    if (accessToken) {
-      fetchMetrics();
-    }
+    fetchMetrics();
   }, [accessToken]);
 
   const filteredTransactions = useMemo(() => {
-    return transactions.filter(t => 
-      t.event.name.toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-      t.user.fullName.toLowerCase().includes(debouncedSearch.toLowerCase())
+    return (transactions || []).filter(t => 
+      (t.event?.name ?? "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
+      (t.user?.fullName ?? "").toLowerCase().includes(debouncedSearch.toLowerCase())
     );
   }, [transactions, debouncedSearch]);
 
@@ -84,18 +92,18 @@ export default function DashboardOverview() {
       if (!aggregations[key]) {
         aggregations[key] = { label: key, revenue: 0, volume: 0 };
       }
-      aggregations[key].revenue += t.totalPrice;
-      aggregations[key].volume += t.quantity;
+      aggregations[key].revenue += Number(t.totalPrice ?? 0);
+      aggregations[key].volume += Number(t.quantity ?? 0);
     });
 
     return Object.values(aggregations).sort((a, b) => a.label.localeCompare(b.label));
   }, [filteredTransactions, timeRange]);
 
   const totalMetrics = useMemo(() => {
-    const completeDone = transactions.filter(t => t.status === "DONE");
+    const completeDone = (transactions || []).filter(t => t.status === "DONE");
     return {
-      revenue: completeDone.reduce((sum, t) => sum + t.totalPrice, 0),
-      ticketsSold: completeDone.reduce((sum, t) => sum + t.quantity, 0),
+      revenue: completeDone.reduce((sum, t) => sum + Number(t.totalPrice ?? 0), 0),
+      ticketsSold: completeDone.reduce((sum, t) => sum + Number(t.quantity ?? 0), 0),
     };
   }, [transactions]);
 
@@ -114,7 +122,7 @@ export default function DashboardOverview() {
         <meta name="description" content="Analyze consumer transactions, sales streams profiles, and filter range vectors metrics." />
       </Helmet>
 
-      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 space-y-8">
+      <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 pt-24 md:pt-28 space-y-8">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
           <div>
             <h1 className="text-3xl font-extrabold text-teal-400 tracking-tight">Management Dashboard</h1>
@@ -241,17 +249,43 @@ export default function DashboardOverview() {
                     <th className="py-3 px-4">Event Matrix Target</th>
                     <th className="py-3 px-4">Attendee Subscriber</th>
                     <th className="py-3 px-4 text-center">Seats Qty</th>
+                    <th className="py-3 px-4 text-center">Payment Proof</th>
                     <th className="py-3 px-4 text-right">Net Value Charged</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50 font-mono text-slate-300">
                   {filteredTransactions.map((t) => (
                     <tr key={t.id} className="hover:bg-slate-950/40 transition">
-                      <td className="py-3 px-4 whitespace-nowrap">{new Date(t.createdAt).toLocaleDateString()}</td>
-                      <td className="py-3 px-4 font-bold text-white">{t.event.name}</td>
-                      <td className="py-3 px-4">{t.user.fullName}</td>
-                      <td className="py-3 px-4 text-center text-teal-400 font-bold">{t.quantity}</td>
-                      <td className="py-3 px-4 text-right text-emerald-400">IDR {t.totalPrice.toLocaleString()}</td>
+                      <td className="py-3 px-4 whitespace-nowrap">
+                        {t.createdAt ? new Date(t.createdAt).toLocaleDateString() : "-"}
+                      </td>
+                      <td className="py-3 px-4 font-bold text-white">
+                        {t.event?.name ?? "N/A"}
+                      </td>
+                      <td className="py-3 px-4">
+                        {t.user?.fullName ?? "Unknown"}
+                      </td>
+                      <td className="py-3 px-4 text-center text-teal-400 font-bold">
+                        {t.quantity ?? 0}
+                      </td>
+                      <td className="py-3 px-4 text-center">
+                        {t.paymentProof ? (
+                          <a
+                            href={t.paymentProof}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-teal-400 hover:text-teal-300 underline font-sans text-xs"
+                          >
+                            <span>Proof</span>
+                            <ExternalLink size={12} />
+                          </a>
+                        ) : (
+                          <span className="text-slate-600 font-sans text-xs">No Proof</span>
+                        )}
+                      </td>
+                      <td className="py-3 px-4 text-right text-emerald-400">
+                        IDR {(t.totalPrice ?? 0).toLocaleString()}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
