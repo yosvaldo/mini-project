@@ -1,4 +1,4 @@
-import { api } from "../utils/api";
+import { api } from "../configs/api.config";
 
 export interface EventItem {
   id: string;

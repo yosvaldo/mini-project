@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
-import { apiStatic } from "../../configs/api.config";
+import { api } from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
 import { toast } from "sonner";
 
@@ -50,10 +50,10 @@ export default function CheckoutPage() {
     const initCheckout = async () => {
       setFetchingEvent(true);
       try {
-        const resEvent = await apiStatic.get(`/events/${eventId}`);
+        const resEvent = await api.get(`/events/${eventId}`);
         setEvent(resEvent.data?.data || resEvent.data);
 
-        const resMe = await apiStatic.get("/auth/me", {
+        const resMe = await api.get("/auth/me", {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
         const userData = resMe.data?.data || resMe.data;
@@ -76,7 +76,7 @@ export default function CheckoutPage() {
     if (!eventId || !accessToken) return;
     setLoadingPreview(true);
     try {
-      const res = await apiStatic.get("/transactions/preview", {
+      const res = await api.get("/transactions/preview", {
         params: {
           eventId,
           quantity,
@@ -132,7 +132,7 @@ export default function CheckoutPage() {
     formData.append("paymentProof", paymentFile);
 
     try {
-      await apiStatic.post("/transactions/purchase", formData, {
+      await api.post("/transactions/purchase", formData, {
         headers: {
           "Content-Type": "multipart/form-data",
           Authorization: `Bearer ${accessToken}`,
