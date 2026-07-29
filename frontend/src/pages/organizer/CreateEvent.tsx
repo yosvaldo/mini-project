@@ -11,12 +11,11 @@ export default function CreateEvent() {
 
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [city, setCity] = useState("Jakarta");
-  const [location, setLocation] = useState("");
+  const [location, setLocation] = useState<"Bali" | "Bandung" | "Jakarta" | "Surabaya" | "Yogyakarta">("Jakarta");
   const [eventDate, setEventDate] = useState("");
-  
   const [price, setPrice] = useState<number>(0);
-  const [capacity, setCapacity] = useState<number>(100);
+  const [seats, setSeats] = useState<number>(100);
+  const [imageUrl, setImageUrl] = useState("");
 
   const glassStyle =
     "bg-gradient-to-b from-white/[0.07] to-white/[0.02] backdrop-blur-[32px] backdrop-saturate-[160%] border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]";
@@ -32,23 +31,22 @@ export default function CreateEvent() {
     setLoading(true);
 
     try {
-      const payload = {
+      const payload: Record<string, unknown> = {
         name,
         description,
-        city,
         location,
-        startDate: new Date(eventDate).toISOString(),
-        tickets: [
-          {
-            price: Number(price),
-            capacity: Number(capacity),
-          },
-        ],
+        date: new Date(eventDate).toISOString(),
+        price: Number(price),
+        seats: Number(seats),
       };
+
+      if (imageUrl && imageUrl.trim() !== "") {
+        payload.imageUrl = imageUrl.trim();
+      }
 
       await api.post("/events", payload);
       toast.success("Event created successfully!");
-      navigate("/dashboard"); 
+      navigate("/dashboard");
     } catch (error: unknown) {
       let message = "Failed to create event.";
       if (axios.isAxiosError(error) && error.response?.data?.message) {
@@ -100,11 +98,11 @@ export default function CreateEvent() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    City
+                    City / Location
                   </label>
                   <select
-                    value={city}
-                    onChange={(e) => setCity(e.target.value)}
+                    value={location}
+                    onChange={(e) => setLocation(e.target.value as "Bali" | "Bandung" | "Jakarta" | "Surabaya" | "Yogyakarta")}
                     className="w-full bg-eventura-navy p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all cursor-pointer"
                   >
                     <option value="Bali">Bali</option>
@@ -117,14 +115,13 @@ export default function CreateEvent() {
 
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Location / Venue
+                    Banner Image URL (Optional)
                   </label>
                   <input
-                    type="text"
-                    required
-                    placeholder="e.g. Grand Ballroom"
-                    value={location}
-                    onChange={(e) => setLocation(e.target.value)}
+                    type="url"
+                    placeholder="https://example.com/banner.jpg"
+                    value={imageUrl}
+                    onChange={(e) => setImageUrl(e.target.value)}
                     className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
                   />
                 </div>
@@ -166,7 +163,7 @@ export default function CreateEvent() {
 
             <div className="space-y-4 pt-4 border-t border-white/10">
               <h2 className="text-xs font-bold uppercase tracking-wider text-luxury-gold">
-                3. Initial Ticket Tier
+                3. Ticket Capacity & Pricing
               </h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -186,14 +183,14 @@ export default function CreateEvent() {
 
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                    Total Capacity
+                    Total Seats / Capacity
                   </label>
                   <input
                     type="number"
                     min="1"
                     required
-                    value={capacity}
-                    onChange={(e) => setCapacity(Number(e.target.value))}
+                    value={seats}
+                    onChange={(e) => setSeats(Number(e.target.value))}
                     className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all"
                   />
                 </div>
