@@ -3,6 +3,7 @@ import { Helmet } from "react-helmet-async";
 import { api } from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
 import { toast } from "sonner";
+import { Upload, Eye, CheckCircle2, Clock, AlertCircle } from "lucide-react";
 
 interface PointRecord {
   id: string;
@@ -48,22 +49,87 @@ export default function ProfilePage() {
   const { user, accessToken } = useAuthStore();
   const [profile, setProfile] = useState<UserProfileData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [reuploadingId, setReuploadingId] = useState<string | null>(null);
+
+  const fetchUserData = async () => {
+    if (!accessToken) return;
+    try {
+      const res = await api.get("/auth/me", {
+        headers: { Authorization: `Bearer ${accessToken}` },
+      });
+      setProfile(res.data?.data || res.data);
+    } catch {
+      toast.error("Failed to load user profile details");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    const fetchUserData = async () => {
+    let active = true;
+
+    const loadProfile = async () => {
+      if (!accessToken) {
+        if (active) setLoading(false);
+        return;
+      }
       try {
         const res = await api.get("/auth/me", {
           headers: { Authorization: `Bearer ${accessToken}` },
         });
-        setProfile(res.data?.data || res.data);
+        if (active) {
+          setProfile(res.data?.data || res.data);
+        }
       } catch {
-        toast.error("Failed to load user profile details");
+        if (active) {
+          toast.error("Failed to load user profile details");
+        }
       } finally {
-        setLoading(false);
+        if (active) {
+          setLoading(false);
+        }
       }
     };
-    if (accessToken) fetchUserData();
+
+    void loadProfile();
+
+    return () => {
+      active = false;
+    };
   }, [accessToken]);
+
+  const handleReuploadProof = async (
+    e: React.ChangeEvent<HTMLInputElement>,
+    transactionId: string
+  ) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 3 * 1024 * 1024) {
+      toast.error("File size exceeds 3MB limit.");
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append("paymentProof", file);
+
+    setReuploadingId(transactionId);
+    try {
+      await api.patch(`/transactions/${transactionId}/reupload`, formData, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "multipart/form-data",
+        },
+      });
+
+      toast.success("New payment proof submitted successfully!");
+      await fetchUserData();
+    } catch {
+      toast.error("Failed to upload new payment proof. Please try again.");
+    } finally {
+      setReuploadingId(null);
+    }
+  };
 
   if (!user) {
     return (
@@ -90,20 +156,23 @@ export default function ProfilePage() {
     switch (status) {
       case "PENDING":
         return (
-          <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-amber-950 text-amber-400 border border-amber-900">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+            <Clock size={13} />
             Awaiting Organizer confirmation
           </span>
         );
       case "DONE":
         return (
-          <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-emerald-950 text-emerald-400 border border-emerald-900">
-            Confirmed
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+            <CheckCircle2 size={13} />
+            Payment Proof confirmed
           </span>
         );
       case "REJECTED":
         return (
-          <span className="px-2.5 py-0.5 rounded text-[11px] font-semibold bg-red-950 text-red-400 border border-red-900">
-            Rejected
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-md text-xs font-semibold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+            <AlertCircle size={13} />
+            Payment Proof declined, please send new Payment Proof.
           </span>
         );
       default:
@@ -201,7 +270,7 @@ export default function ProfilePage() {
                   key={tx.id}
                   className="bg-slate-950 border border-slate-800 p-4 rounded-lg flex flex-col md:flex-row justify-between items-start md:items-center gap-4"
                 >
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <h3 className="font-bold text-teal-400 text-base">
                       {tx.event?.name || "Event Ticket"}
                     </h3>
@@ -212,8 +281,7 @@ export default function ProfilePage() {
                       Purchased on: {new Date(tx.createdAt).toLocaleDateString()}
                     </p>
                     
-                    <div className="pt-1 flex items-center gap-2">
-                      <span className="text-xs text-slate-400">Payment Status:</span>
+                    <div className="pt-1 flex flex-wrap items-center gap-2">
                       {renderStatusBadge(tx.status)}
                     </div>
                   </div>
@@ -228,20 +296,33 @@ export default function ProfilePage() {
                       </span>
                     </div>
 
-                    {tx.paymentProof && (
-                      <a
-                        href={tx.paymentProof}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-400 hover:text-teal-300 bg-slate-900 hover:bg-slate-800 border border-teal-500/30 hover:border-teal-400/50 px-3 py-1.5 rounded transition cursor-pointer"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
-                        </svg>
-                        View Payment Proof
-                      </a>
-                    )}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {tx.paymentProof && (
+                        <a
+                          href={tx.paymentProof}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 text-xs font-medium text-teal-400 hover:text-teal-300 bg-slate-900 hover:bg-slate-800 border border-teal-500/30 hover:border-teal-400/50 px-3 py-1.5 rounded transition cursor-pointer"
+                        >
+                          <Eye size={14} />
+                          View Proof
+                        </a>
+                      )}
+
+                      {tx.status === "REJECTED" && (
+                        <label className="inline-flex items-center gap-1.5 text-xs font-medium bg-teal-600 hover:bg-teal-500 text-white px-3 py-1.5 rounded transition cursor-pointer">
+                          <Upload size={14} />
+                          {reuploadingId === tx.id ? "Uploading..." : "Upload New Proof"}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="hidden"
+                            disabled={reuploadingId === tx.id}
+                            onChange={(e) => handleReuploadProof(e, tx.id)}
+                          />
+                        </label>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))}

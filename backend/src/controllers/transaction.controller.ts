@@ -89,6 +89,75 @@ class TransactionController {
       next(error);
     }
   };
+
+  reuploadProof = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) throw new AppError("Unauthorized", 401);
+
+      const transactionId = String(req.params.transactionId || "").trim();
+      const file = req.file;
+
+      if (!transactionId) throw new AppError("Transaction ID is required", 400);
+      if (!file) throw new AppError("New payment proof image is required", 400);
+
+      const uploadToCloudinary = (): Promise<string> => {
+        return new Promise((resolve, reject) => {
+          const stream = Cloudinary.uploader.upload_stream(
+            { folder: "eventura_file_handling/payment_proofs" },
+            (err, result) => {
+              if (err || !result) {
+                return reject(new AppError("Failed to upload new payment proof to Cloudinary", 500));
+              }
+              resolve(result.secure_url);
+            }
+          );
+          Readable.from(file.buffer).pipe(stream);
+        });
+      };
+
+      const newPaymentProofUrl = await uploadToCloudinary();
+
+      const updatedTransaction = await transactionService.reuploadPaymentProof(
+        userId,
+        transactionId,
+        newPaymentProofUrl
+      );
+
+      return res.status(200).send(
+        responseBuilder(200, "Payment proof reuploaded successfully", updatedTransaction)
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
+
+  updateStatus = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+      const userId = req.user?.id;
+      if (!userId) throw new AppError("Unauthorized", 401);
+
+      const transactionId = String(req.params.transactionId || "").trim();
+      const { status } = req.body;
+
+      if (!transactionId) throw new AppError("Transaction ID is required", 400);
+      if (!status || !["DONE", "REJECTED"].includes(status)) {
+        throw new AppError("Valid status (DONE or REJECTED) is required", 400);
+      }
+
+      const updatedTransaction = await transactionService.updateTransactionStatus(
+        userId,
+        transactionId,
+        status
+      );
+
+      return res.status(200).send(
+        responseBuilder(200, `Transaction status updated to ${status}`, updatedTransaction)
+      );
+    } catch (error) {
+      next(error);
+    }
+  };
 }
 
 export default new TransactionController();

@@ -19,4 +19,15 @@ transactionRouter.post(
   TransactionController.purchaseTicket
 );
 
+transactionRouter.patch(
+  "/:transactionId/reupload",
+  upload.single("paymentProof"),
+  TransactionController.reuploadProof
+);
+
+transactionRouter.patch(
+  "/:transactionId/status",
+  TransactionController.updateStatus
+);
+
 export default transactionRouter;

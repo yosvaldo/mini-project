@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
-import { api } from "../../configs/api.config";
+import api from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
 import { Eye, X, Check, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -8,11 +8,13 @@ import type { AxiosError } from "axios";
 
 interface TransactionItem {
   id: string;
-  totalPrice: number;
+  totalPrice?: number;
+  finalPrice?: number;
   quantity: number;
   status: "PENDING" | "DONE" | "REJECTED";
   createdAt: string;
   paymentProofUrl?: string;
+  paymentProof?: string; 
   event: { name: string };
   user: { fullName: string; email: string };
 }
@@ -34,10 +36,8 @@ export default function DashboardTransactions() {
       return;
     }
     try {
-      const res = await api.get("/dashboard/metrics", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-      });
-      setTxs(res.data.data.transactions || []);
+      const res = await api.get("/dashboard/metrics");
+      setTxs(res.data?.data?.transactions || []);
     } catch {
       toast.error("Failed to gather financial database transaction streams.");
     } finally {
@@ -63,11 +63,10 @@ export default function DashboardTransactions() {
     try {
       await api.patch(
         `/transactions/${id}/status`,
-        { status: action === "approve" ? "DONE" : "REJECTED" },
-        { headers: { Authorization: `Bearer ${accessToken}` } }
+        { status: action === "approve" ? "DONE" : "REJECTED" }
       );
-      toast.success(`Transaction block mutation finalized: ${action.toUpperCase()}`);
-      fetchTxs();
+      toast.success(`Transaction status updated to ${action === "approve" ? "DONE" : "REJECTED"}`);
+      await fetchTxs();
     } catch (err) {
       const error = err as AxiosError<ServerError>;
       toast.error(error.response?.data?.message || "Failed to update transaction state.");
@@ -114,61 +113,68 @@ export default function DashboardTransactions() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/60 font-mono text-slate-300">
-                  {txs.map((t) => (
-                    <tr key={t.id} className="hover:bg-slate-950/30 transition">
-                      <td className="py-3 px-4 text-slate-500 font-mono tracking-tight text-[11px] max-w-30 truncate">{t.id ?? "-"}</td>
-                      <td className="py-3 px-4 text-white font-sans font-bold">{t.event?.name ?? "N/A"}</td>
-                      <td className="py-3 px-4 font-sans">
-                        <div className="text-slate-200 font-semibold">{t.user?.fullName ?? "Unknown"}</div>
-                        <div className="text-[10px] text-slate-500 font-mono">{t.user?.email ?? "-"}</div>
-                      </td>
-                      <td className="py-3 px-4 text-center text-teal-400 font-bold">{t.quantity ?? 0}</td>
-                      <td className="py-3 px-4 text-right text-emerald-400 font-bold">IDR {(t.totalPrice ?? 0).toLocaleString()}</td>
-                      <td className="py-3 px-4 text-center">
-                        <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${
-                          t.status === "DONE" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
-                          t.status === "REJECTED" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
-                          "bg-amber-500/10 text-amber-400 border border-amber-500/20"
-                        }`}>
-                          {t.status ?? "PENDING"}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4">
-                        <div className="flex items-center justify-center space-x-1.5">
-                          {t.paymentProofUrl ? (
-                            <button
-                              onClick={() => setActiveProofUrl(t.paymentProofUrl!)}
-                              className="p-1 bg-slate-800 text-slate-300 hover:text-white rounded border border-slate-700 transition"
-                              title="Inspect Proof File Attachment"
-                            >
-                              <Eye size={12} />
-                            </button>
-                          ) : (
-                            <div className="p-1 text-slate-600"><X size={12} /></div>
-                          )}
+                  {txs.map((t) => {
+                    const proof = t.paymentProofUrl || t.paymentProof;
+                    const amount = t.finalPrice ?? t.totalPrice ?? 0;
 
-                          {t.status === "PENDING" && (
-                            <>
+                    return (
+                      <tr key={t.id} className="hover:bg-slate-950/30 transition">
+                        <td className="py-3 px-4 text-slate-500 font-mono tracking-tight text-[11px] max-w-30 truncate">{t.id ?? "-"}</td>
+                        <td className="py-3 px-4 text-white font-sans font-bold">{t.event?.name ?? "N/A"}</td>
+                        <td className="py-3 px-4 font-sans">
+                          <div className="text-slate-200 font-semibold">{t.user?.fullName ?? "Unknown"}</div>
+                          <div className="text-[10px] text-slate-500 font-mono">{t.user?.email ?? "-"}</div>
+                        </td>
+                        <td className="py-3 px-4 text-center text-teal-400 font-bold">{t.quantity ?? 0}</td>
+                        <td className="py-3 px-4 text-right text-emerald-400 font-bold">IDR {amount.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-center">
+                          <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${
+                            t.status === "DONE" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
+                            t.status === "REJECTED" ? "bg-rose-500/10 text-rose-400 border border-rose-500/20" :
+                            "bg-amber-500/10 text-amber-400 border border-amber-500/20"
+                          }`}>
+                            {t.status ?? "PENDING"}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4">
+                          <div className="flex items-center justify-center space-x-1.5">
+                            {proof ? (
                               <button
-                                disabled={processingId !== null}
-                                onClick={() => updateStatus(t.id, "approve")}
-                                className="p-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded border border-emerald-500/20 transition"
+                                onClick={() => setActiveProofUrl(proof)}
+                                className="p-1 bg-slate-800 text-slate-300 hover:text-white rounded border border-slate-700 transition cursor-pointer"
+                                title="Inspect Proof File Attachment"
                               >
-                                <Check size={12} />
+                                <Eye size={12} />
                               </button>
-                              <button
-                                disabled={processingId !== null}
-                                onClick={() => updateStatus(t.id, "reject")}
-                                className="p-1 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded border border-rose-500/20 transition"
-                              >
-                                <X size={12} />
-                              </button>
-                            </>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                            ) : (
+                              <div className="p-1 text-slate-600"><X size={12} /></div>
+                            )}
+
+                            {t.status === "PENDING" && (
+                              <>
+                                <button
+                                  disabled={processingId === t.id}
+                                  onClick={() => updateStatus(t.id, "approve")}
+                                  className="p-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded border border-emerald-500/20 transition cursor-pointer disabled:opacity-50"
+                                  title="Approve Transaction"
+                                >
+                                  <Check size={12} />
+                                </button>
+                                <button
+                                  disabled={processingId === t.id}
+                                  onClick={() => updateStatus(t.id, "reject")}
+                                  className="p-1 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded border border-rose-500/20 transition cursor-pointer disabled:opacity-50"
+                                  title="Reject Transaction"
+                                >
+                                  <X size={12} />
+                                </button>
+                              </>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
                 </tbody>
               </table>
             </div>
@@ -180,7 +186,7 @@ export default function DashboardTransactions() {
             <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 max-w-lg w-full flex flex-col space-y-3 relative">
               <button
                 onClick={() => setActiveProofUrl(null)}
-                className="absolute top-2 right-2 text-slate-400 hover:text-white p-1 bg-slate-950 rounded-full border border-slate-800"
+                className="absolute top-2 right-2 text-slate-400 hover:text-white p-1 bg-slate-950 rounded-full border border-slate-800 cursor-pointer"
               >
                 <X size={16} />
               </button>
