@@ -15,7 +15,6 @@ interface RawEventResponse {
   location?: string;
   venue?: string;
   city?: string;
-  description?: string;
   available_seats?: number;
   created_at?: string;
   user?: { name?: string; email?: string };

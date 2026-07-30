@@ -8,7 +8,6 @@ export interface EventItem {
   type: string;
   date: string;
   location: string;
-  description?: string;
   available_seats?: number;
   created_at?: string;
   user?: {

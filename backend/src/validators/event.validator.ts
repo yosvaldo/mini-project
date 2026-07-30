@@ -6,11 +6,6 @@ export const createEventSchema = z.object({
         .min(3, "Event name must be at least 3 characters.")
         .max(100, "Event name is too long."),
 
-    description: z
-        .string()
-        .min(10, "Description must be at least 10 characters.")
-        .max(1000, "Description is too long."),
-
     location: z.enum([
         "Jakarta",
         "Bandung",

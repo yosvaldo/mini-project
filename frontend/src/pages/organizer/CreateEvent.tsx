@@ -10,7 +10,6 @@ export default function CreateEvent() {
   const [loading, setLoading] = useState(false);
 
   const [name, setName] = useState("");
-  const [description, setDescription] = useState("");
   const [location, setLocation] = useState<"Bali" | "Bandung" | "Jakarta" | "Surabaya" | "Yogyakarta">("Jakarta");
   const [eventDate, setEventDate] = useState("");
   const [price, setPrice] = useState<number>(0);
@@ -23,7 +22,7 @@ export default function CreateEvent() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!name || !description || !location || !eventDate) {
+    if (!name || !location || !eventDate) {
       toast.error("Please fill in all required fields.");
       return;
     }
@@ -33,7 +32,6 @@ export default function CreateEvent() {
     try {
       const payload: Record<string, unknown> = {
         name,
-        description,
         location,
         date: new Date(eventDate).toISOString(),
         price: Number(price),
@@ -125,20 +123,6 @@ export default function CreateEvent() {
                     className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">
-                  Description
-                </label>
-                <textarea
-                  rows={4}
-                  required
-                  placeholder="Describe your event..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full bg-white/5 p-3.5 text-xs text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
-                />
               </div>
             </div>
 

@@ -2,7 +2,6 @@ export interface CreateEventData {
     organizerId: string;
 
     name: string;
-    description: string;
     location: string;
 
     date: Date;
@@ -15,7 +14,6 @@ export interface CreateEventData {
 
 export interface UpdateEventData {
     name?: string;
-    description?: string;
     location?: string;
 
     date?: Date;

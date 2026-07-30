@@ -90,9 +90,6 @@ export default function EventsList() {
 
                   <div className="p-5 flex flex-col grow justify-between space-y-4">
                     <div className="space-y-2">
-                      <p className="text-[10px] text-slate-400 font-medium">
-                        Promoter: {evt.user?.name || "Eventura Organizer"}
-                      </p>
                       <h3 className="text-base font-bold text-white group-hover:text-amber-400 transition-colors line-clamp-1">
                         {evt.name}
                       </h3>

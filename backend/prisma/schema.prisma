@@ -82,7 +82,6 @@ model Event {
   type         TicketType    @default(FREE)
   date         DateTime      
   location     String
-  description  String
   seats        Int           @map("available_seats")
   imageUrl      String?      @map("image_url")
   transactions Transaction[]
