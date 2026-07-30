@@ -25,7 +25,6 @@ class EventRepository {
                 organizerId: data.organizerId,
 
                 name: data.name,
-                description: data.description,
                 location: data.location,
 
                 date: data.date,
@@ -47,21 +46,21 @@ class EventRepository {
     async update(
         id: string,
         data: UpdateEventData,
-        ): Promise<Event> {
-            return prisma.event.update({
-                where: { id },
-                data: {
-                    ...data,
+    ): Promise<Event> {
+        return prisma.event.update({
+            where: { id },
+            data: {
+                ...data,
 
-                    ...(data.price !== undefined && {
-                        type:
+                ...(data.price !== undefined && {
+                    type:
                         data.price > 0
-                        ? TicketType.PAID
-                        : TicketType.FREE,
-            }),
-        },
-    });
-}
+                            ? TicketType.PAID
+                            : TicketType.FREE,
+                }),
+            },
+        });
+    }
 }
 
 export default new EventRepository();
