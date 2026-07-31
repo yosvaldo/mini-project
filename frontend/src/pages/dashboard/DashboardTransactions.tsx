@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { Helmet } from "react-helmet-async";
 import api from "../../configs/api.config";
 import useAuthStore from "../../stores/authStore";
-import { Eye, X, Check, AlertCircle } from "lucide-react";
+import { Eye, X, Check, AlertCircle, CheckCircle2 } from "lucide-react";
 import { toast } from "sonner";
 import type { AxiosError } from "axios";
 
@@ -116,6 +116,7 @@ export default function DashboardTransactions() {
                   {txs.map((t) => {
                     const proof = t.paymentProofUrl || t.paymentProof;
                     const amount = t.finalPrice ?? t.totalPrice ?? 0;
+                    const isFreeEvent = amount === 0;
 
                     return (
                       <tr key={t.id} className="hover:bg-slate-950/30 transition">
@@ -126,7 +127,13 @@ export default function DashboardTransactions() {
                           <div className="text-[10px] text-slate-500 font-mono">{t.user?.email ?? "-"}</div>
                         </td>
                         <td className="py-3 px-4 text-center text-teal-400 font-bold">{t.quantity ?? 0}</td>
-                        <td className="py-3 px-4 text-right text-emerald-400 font-bold">IDR {amount.toLocaleString()}</td>
+                        <td className="py-3 px-4 text-right font-bold">
+                          {isFreeEvent ? (
+                            <span className="text-slate-400 font-mono text-[11px]">FREE</span>
+                          ) : (
+                            <span className="text-emerald-400">IDR {amount.toLocaleString()}</span>
+                          )}
+                        </td>
                         <td className="py-3 px-4 text-center">
                           <span className={`inline-block px-2 py-0.5 rounded text-[9px] font-bold ${
                             t.status === "DONE" ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20" :
@@ -138,36 +145,45 @@ export default function DashboardTransactions() {
                         </td>
                         <td className="py-3 px-4">
                           <div className="flex items-center justify-center space-x-1.5">
-                            {proof ? (
-                              <button
-                                onClick={() => setActiveProofUrl(proof)}
-                                className="p-1 bg-slate-800 text-slate-300 hover:text-white rounded border border-slate-700 transition cursor-pointer"
-                                title="Inspect Proof File Attachment"
-                              >
-                                <Eye size={12} />
-                              </button>
+                            {isFreeEvent ? (
+                              <div className="flex items-center space-x-1 text-slate-500 text-[10px] font-mono italic">
+                                <CheckCircle2 size={12} className="text-emerald-500" />
+                                <span>COMPLETED</span>
+                              </div>
                             ) : (
-                              <div className="p-1 text-slate-600"><X size={12} /></div>
-                            )}
-
-                            {t.status === "PENDING" && (
                               <>
-                                <button
-                                  disabled={processingId === t.id}
-                                  onClick={() => updateStatus(t.id, "approve")}
-                                  className="p-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded border border-emerald-500/20 transition cursor-pointer disabled:opacity-50"
-                                  title="Approve Transaction"
-                                >
-                                  <Check size={12} />
-                                </button>
-                                <button
-                                  disabled={processingId === t.id}
-                                  onClick={() => updateStatus(t.id, "reject")}
-                                  className="p-1 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded border border-rose-500/20 transition cursor-pointer disabled:opacity-50"
-                                  title="Reject Transaction"
-                                >
-                                  <X size={12} />
-                                </button>
+                                {proof ? (
+                                  <button
+                                    onClick={() => setActiveProofUrl(proof)}
+                                    className="p-1 bg-slate-800 text-slate-300 hover:text-white rounded border border-slate-700 transition cursor-pointer"
+                                    title="Inspect Proof File Attachment"
+                                  >
+                                    <Eye size={12} />
+                                  </button>
+                                ) : (
+                                  <div className="p-1 text-slate-600" title="No Payment Proof Uploaded"><X size={12} /></div>
+                                )}
+
+                                {t.status === "PENDING" && (
+                                  <>
+                                    <button
+                                      disabled={processingId === t.id}
+                                      onClick={() => updateStatus(t.id, "approve")}
+                                      className="p-1 bg-emerald-600/20 text-emerald-400 hover:bg-emerald-600 hover:text-white rounded border border-emerald-500/20 transition cursor-pointer disabled:opacity-50"
+                                      title="Approve Transaction"
+                                    >
+                                      <Check size={12} />
+                                    </button>
+                                    <button
+                                      disabled={processingId === t.id}
+                                      onClick={() => updateStatus(t.id, "reject")}
+                                      className="p-1 bg-rose-600/20 text-rose-400 hover:bg-rose-600 hover:text-white rounded border border-rose-500/20 transition cursor-pointer disabled:opacity-50"
+                                      title="Reject Transaction"
+                                    >
+                                      <X size={12} />
+                                    </button>
+                                  </>
+                                )}
                               </>
                             )}
                           </div>

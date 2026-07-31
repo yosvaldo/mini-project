@@ -1,16 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { BrowserRouter } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "sonner";
 import AppRouter from "./routers/app.router";
 import useAuthStore from "./stores/authStore";
-import api, { setAccessToken } from "./configs/api.config";
+import { api, setAccessToken } from "./configs/api.config";
 
 export default function App() {
   const { setAuth } = useAuthStore();
   const [initializing, setInitializing] = useState(true);
+  
+  const isMountedRef = useRef(false);
 
   useEffect(() => {
+    if (isMountedRef.current) return;
+    isMountedRef.current = true;
+
     const initAuth = async () => {
       try {
         const res = await api.post("/auth/refresh-token");

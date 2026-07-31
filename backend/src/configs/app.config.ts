@@ -8,11 +8,23 @@ const app: Application = express();
 app.set("trust proxy", 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
+const allowedOrigins = [
+    "http://localhost:5173",
+    CLIENT_ORIGIN
+].filter(Boolean);
+
 app.use(
-	cors({
-		origin: CLIENT_ORIGIN,
-		credentials: true,
-	}),
+    cors({
+        origin: (origin, callback) => {
+            if (!origin || allowedOrigins.includes(origin)) {
+                callback(null, true);
+            } else {
+                callback(new Error("Not allowed by CORS"));
+            }
+        },
+        credentials: true,
+    })
 );
 
 export default app;

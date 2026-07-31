@@ -21,7 +21,7 @@ class AuthController {
                 req.body.referredBy || 
                 "";
 
-            const { email, password, role } = parsedData;
+            const { fullName, email, password, role } = parsedData;
 
             const hashedPassword = await hashPassword(password);
             const generatedReferralCode = Math.random().toString(36).substring(2, 10).toUpperCase();
@@ -56,7 +56,7 @@ class AuthController {
                         email,
                         password: hashedPassword,
                         role,
-                        fullName: email.split("@")[0],
+                        fullName: fullName || email.split("@")[0], 
                         referralCode: generatedReferralCode,
                         referredById: referrerUser ? referrerUser.id : null
                     }
@@ -93,17 +93,6 @@ class AuthController {
         try {
             const { email, password } = req.body;
             const { user, accessToken, refreshToken } = await authService.signIn(email, password);
-            return res.cookie("refresh-token", refreshToken, cookieConfig).send(
-                responseBuilder(200, "Login successful", { user, accessToken })
-            );
-        } catch (error) { next(error); }
-    };
-
-    googleLogin = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            const { idToken } = req.body;
-            if (!idToken) throw new AppError("Google ID token missing", 400);
-            const { user, accessToken, refreshToken } = await authService.googleSignIn(idToken);
             return res.cookie("refresh-token", refreshToken, cookieConfig).send(
                 responseBuilder(200, "Login successful", { user, accessToken })
             );
@@ -161,16 +150,6 @@ class AuthController {
             };
 
             return res.send(responseBuilder(200, "Success", userPayload));
-        } catch (error) { next(error); }
-    };
-
-    refreshToken = async (req: Request, res: Response, next: NextFunction) => {
-        try {
-            if (!req.user) throw new AppError("User not authenticated", 401);
-            const { user, accessToken: newAccessToken, refreshToken: newRefreshToken } = await authService.refreshAccessToken(req.user.id);
-            return res.cookie("refresh-token", newRefreshToken, cookieConfig).send(
-                responseBuilder(200, "Token refreshed successfully", { user, accessToken: newAccessToken })
-            );
         } catch (error) { next(error); }
     };
 }

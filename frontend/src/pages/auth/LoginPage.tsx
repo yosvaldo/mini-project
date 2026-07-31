@@ -1,34 +1,46 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+import { signInSchema } from "../../validators/auth.validator";
 import useAuthStore from "../../stores/authStore";
 import { toast } from "sonner";
+
+type LoginFormValues = z.infer<typeof signInSchema>;
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
 
   const glassStyle =
     "bg-gradient-to-b from-white/[0.07] to-white/[0.02] backdrop-blur-[32px] backdrop-saturate-[160%] border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!email || !password) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<LoginFormValues>({
+    resolver: zodResolver(signInSchema),
+    defaultValues: {
+      email: "",
+      password: "",
+    },
+  });
 
+  const onSubmit = async (data: LoginFormValues) => {
     setLoading(true);
 
     await login(
       {
-        email,
-        password,
+        email: data.email,
+        password: data.password,
       },
       () => {
+        toast.success("Welcome back!");
         navigate("/dashboard");
       }
     );
@@ -62,33 +74,39 @@ export default function LoginPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+              <label htmlFor="email" className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
                 Email Address
               </label>
               <input
+                id="email"
                 type="email"
-                required
+                autoComplete="email"
                 placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                {...register("email")}
                 className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
               />
+              {errors.email && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.email.message}</p>
+              )}
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+              <label htmlFor="password" className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
                 Password
               </label>
               <input
+                id="password"
                 type="password"
-                required
+                autoComplete="current-password"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                {...register("password")}
                 className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
               />
+              {errors.password && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.password.message}</p>
+              )}
             </div>
 
             <button

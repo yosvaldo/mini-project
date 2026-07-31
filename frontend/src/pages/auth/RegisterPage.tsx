@@ -1,53 +1,51 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { Helmet } from "react-helmet-async";
+import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
+
+import { signUpSchema } from "../../validators/auth.validator";
 import useAuthStore from "../../stores/authStore";
 import { toast } from "sonner";
+
+type RegisterFormValues = z.infer<typeof signUpSchema>;
 
 export default function RegisterPage() {
   const navigate = useNavigate();
   const { signUp } = useAuthStore();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"CUSTOMER" | "ORGANIZER">("CUSTOMER");
-  const [referredByCode, setReferredByCode] = useState("");
   const [loading, setLoading] = useState(false);
 
   const glassStyle =
     "bg-gradient-to-b from-white/[0.07] to-white/[0.02] backdrop-blur-[32px] backdrop-saturate-[160%] border border-white/[0.08] shadow-[0_24px_50px_rgba(0,0,0,0.5),inset_0_1px_0_rgba(255,255,255,0.15)]";
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!fullName || !email || !password || !confirmPassword) {
-      toast.error("Please fill in all required fields.");
-      return;
-    }
+  const {
+    register,
+    handleSubmit,
+    formState: { errors },
+  } = useForm<RegisterFormValues>({
+    resolver: zodResolver(signUpSchema),
+    defaultValues: {
+      fullName: "",
+      email: "",
+      password: "",
+      confirmPassword: "",
+      role: "CUSTOMER",
+      referredByCode: "",
+    },
+  });
 
-    if (password !== confirmPassword) {
-      toast.error("Passwords do not match.");
-      return;
-    }
-
-    const passwordRegex = /^(?=.*[A-Za-z])(?=.*\d).{6,}$/;
-    if (!passwordRegex.test(password)) {
-      toast.error(
-        "Password must be at least 6 characters long and contain at least one letter and one number."
-      );
-      return;
-    }
-
+  const onSubmit = async (data: RegisterFormValues) => {
     setLoading(true);
 
     await signUp(
       {
-        fullName,
-        email,
-        password,
-        confirmPassword,
-        role,
-        referredByCode: referredByCode.trim() || undefined,
+        fullName: data.fullName,
+        email: data.email,
+        password: data.password,
+        confirmPassword: data.confirmPassword,
+        role: data.role,
+        referredByCode: data.referredByCode?.trim().toUpperCase() || undefined,
       },
       () => {
         toast.success("Account registered successfully! Please log in.");
@@ -84,70 +82,14 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
             <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
-                Full Name
-              </label>
-              <input
-                type="text"
-                required
-                placeholder="John Doe"
-                value={fullName}
-                onChange={(e) => setFullName(e.target.value)}
-                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
-                Email Address
-              </label>
-              <input
-                type="email"
-                required
-                placeholder="name@example.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
-                Password
-              </label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
-                Confirm Password
-              </label>
-              <input
-                type="password"
-                required
-                placeholder="••••••••"
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
-              />
-            </div>
-
-            <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+              <label htmlFor="role" className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
                 Account Type
               </label>
               <select
-                value={role}
-                onChange={(e) => setRole(e.target.value as "CUSTOMER" | "ORGANIZER")}
+                id="role"
+                {...register("role")}
                 className="w-full bg-eventura-navy p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all cursor-pointer"
               >
                 <option value="CUSTOMER">Customer (Buy Tickets)</option>
@@ -156,14 +98,83 @@ export default function RegisterPage() {
             </div>
 
             <div>
-              <label className="block text-[10px] font-bold tracking-wider uppercase text-luxury-gold mb-1.5">
+              <label htmlFor="fullName" className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                autoComplete="name"
+                placeholder="John Doe"
+                {...register("fullName")}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+              {errors.fullName && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.fullName.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="email" className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Email Address
+              </label>
+              <input
+                id="email"
+                type="email"
+                autoComplete="email"
+                placeholder="name@example.com"
+                {...register("email")}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+              {errors.email && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.email.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="password" className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Password
+              </label>
+              <input
+                id="password"
+                type="password"
+                autoComplete="new-password"
+                placeholder="••••••••"
+                {...register("password")}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+              {errors.password && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.password.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-[10px] font-bold tracking-wider uppercase text-slate-400 mb-1.5">
+                Confirm Password
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                autoComplete="new-password"
+                placeholder="••••••••"
+                {...register("confirmPassword")}
+                className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-500"
+              />
+              {errors.confirmPassword && (
+                <p className="text-red-400 text-[10px] mt-1">{errors.confirmPassword.message}</p>
+              )}
+            </div>
+
+            <div>
+              <label htmlFor="referredByCode" className="block text-[10px] font-bold tracking-wider uppercase text-luxury-gold mb-1.5">
                 Referral Code (Optional)
               </label>
               <input
+                id="referredByCode"
                 type="text"
+                autoComplete="off"
                 placeholder="10% discount code"
-                value={referredByCode}
-                onChange={(e) => setReferredByCode(e.target.value.toUpperCase())}
+                {...register("referredByCode")}
                 className="w-full bg-white/5 p-3.5 text-[11px] text-white border border-white/10 rounded-xl outline-none focus:border-luxury-gold/50 transition-all placeholder-slate-600 font-mono uppercase"
               />
             </div>

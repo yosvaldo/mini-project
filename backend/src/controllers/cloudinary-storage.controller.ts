@@ -6,31 +6,7 @@ import EmailService from "../services/email.service.js";
 import renderTemplate from "../libs/handlebars.js";
 
 class CloudinaryStorageController {
-    private baseDir = "eventura_file_handling";
-
-    public uploadAvatar = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-        try {
-            if (!req.user || !req.user.email) throw new AppError("Authentication context missing", 401);
-            if (!req.file) throw new AppError("No avatar file uploaded", 400);
-
-            const stream = Cloudinary.uploader.upload_stream(
-                { folder: `${this.baseDir}/avatars` },
-                async (err, result) => {
-                    if (err || !result) return next(new AppError("Avatar upload failed", 500, err));
-
-                    res.status(200).send({
-                        status: 200,
-                        message: "Avatar uploaded successfully!",
-                        data: { url: result.secure_url },
-                    });
-                }
-            );
-
-            Readable.from(req.file.buffer).pipe(stream);
-        } catch (error) {
-            next(error);
-        }
-    };
+    private baseDir = "eventura";
 
     public uploadPaymentProof = async (req: Request, res: Response, next: NextFunction): Promise<void> => {
         try {
@@ -72,7 +48,7 @@ class CloudinaryStorageController {
             if (!req.file) throw new AppError("No event image file uploaded", 400);
 
             const stream = Cloudinary.uploader.upload_stream(
-                { folder: `${this.baseDir}/events` },
+                { folder: `${this.baseDir}/events_images` },
                 async (err, result) => {
                     if (err || !result) return next(new AppError("Event image upload failed", 500, err));
 

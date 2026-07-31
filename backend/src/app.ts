@@ -1,24 +1,18 @@
-import type { Application, Request, Response } from "express";
-import express from "express";
-import cors from "cors";
+import type { Request, Response } from "express";
 import cookieParser from "cookie-parser";
-import apiRoute from "./routes/api.route.js"; 
-import corsOptions from "./configs/cors.config.js";
+import app from "./configs/app.config.js";
+import apiRoute from "./routes/api.route.js";
 import errorHandler from "./middlewares/error-handler.middleware.js";
 
-export const app: Application = express();
-
-app.use(cors(corsOptions));
-
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
 app.use("/api", apiRoute);
 
 app.use((_: Request, res: Response) => {
-    console.error("404 Not Found");
     return res.status(404).send({ message: "Not Found" });
 });
 
 app.use(errorHandler);
+
+export { app };
+export default app;
