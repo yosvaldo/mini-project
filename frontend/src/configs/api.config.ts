@@ -9,8 +9,11 @@ export const setAccessToken = (token: string | null) => {
 
 export const getAccessToken = () => accessTokenMemory;
 
+const rawBaseUrl = import.meta.env.VITE_BASE_API_URL || "http://localhost:8000/api";
+const baseURL = rawBaseUrl.endsWith("/") ? rawBaseUrl : `${rawBaseUrl}/`;
+
 export const api = axios.create({
-    baseURL: `${import.meta.env.VITE_BASE_API_URL || "http://localhost:8000/api"}`,
+    baseURL,
     withCredentials: true, 
 });
 
