@@ -5,6 +5,7 @@ import eventRoute from "./event.route.js";
 import dashboardRouter from "./dashboard.route.js";
 import transactionRouter from "./transaction.route.js";
 import cloudinaryStorageResource from "../resources/cloudinary-storage.resource.js";
+import { verifyToken } from "../middlewares/auth.middleware.js";
 
 const apiRouter: Router = express.Router();
 
@@ -15,6 +16,6 @@ apiRouter.use("/auth", authRoute);
 apiRouter.use("/events", eventRoute);
 apiRouter.use("/dashboard", dashboardRouter);
 apiRouter.use("/transactions", transactionRouter);
-apiRouter.use("/storage", cloudinaryStorageResource);
+apiRouter.use("/storage", verifyToken("access"), cloudinaryStorageResource);
 
 export default apiRouter;
