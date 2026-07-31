@@ -5,12 +5,6 @@ import cloudinaryStorageController from "../controllers/cloudinary-storage.contr
 const cloudinaryStorageResource = Router();
 
 cloudinaryStorageResource.post(
-    "/avatars",
-    imageUploader().single("image"),
-    cloudinaryStorageController.uploadAvatar,
-);
-
-cloudinaryStorageResource.post(
     "/payment-proofs",
     imageUploader().single("image"),
     cloudinaryStorageController.uploadPaymentProof,

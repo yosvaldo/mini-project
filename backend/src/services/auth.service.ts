@@ -82,9 +82,6 @@ export class AuthService {
     };
   }
 
-  static async googleSignIn(_idToken: string): Promise<{ user: any; accessToken: string; refreshToken: string }> {
-    throw new AppError("Google OAuth login is not yet configured on this server", 501);
-  }
 }
 
 export default AuthService;

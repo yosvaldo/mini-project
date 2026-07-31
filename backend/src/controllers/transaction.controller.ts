@@ -48,16 +48,27 @@ class TransactionController {
       const file = req.file;
 
       if (!eventId) throw new AppError("Event ID is required", 400);
-      if (!file) throw new AppError("Payment proof image is required", 400);
 
       const qty = Math.max(1, parseInt(String(quantity || "1"), 10));
       const isUsePoints = String(usePoints) === "true";
       const couponId = useCouponId ? String(useCouponId).trim() : null;
 
-      const uploadToCloudinary = (): Promise<string> => {
-        return new Promise((resolve, reject) => {
+      const preview = await transactionService.calculateCheckoutPreview(
+        userId,
+        String(eventId),
+        qty,
+        couponId,
+        isUsePoints
+      );
+
+      let paymentProofUrl: string | null = null;
+
+      if (preview.finalPrice > 0) {
+        if (!file) throw new AppError("Payment proof image is required for paid events", 400);
+
+        paymentProofUrl = await new Promise((resolve, reject) => {
           const stream = Cloudinary.uploader.upload_stream(
-            { folder: "eventura_file_handling/payment_proofs" },
+            { folder: "eventura/payment_proofs" },
             (err, result) => {
               if (err || !result) {
                 return reject(new AppError("Failed to upload payment proof to Cloudinary", 500));
@@ -67,9 +78,7 @@ class TransactionController {
           );
           Readable.from(file.buffer).pipe(stream);
         });
-      };
-
-      const paymentProofUrl = await uploadToCloudinary();
+      }
 
       const transaction = await transactionService.processTicketPurchase(
         userId,
@@ -79,7 +88,7 @@ class TransactionController {
           useCouponId: couponId,
           usePoints: isUsePoints,
         },
-        paymentProofUrl
+        paymentProofUrl as any 
       );
 
       return res.status(201).send(
@@ -104,7 +113,7 @@ class TransactionController {
       const uploadToCloudinary = (): Promise<string> => {
         return new Promise((resolve, reject) => {
           const stream = Cloudinary.uploader.upload_stream(
-            { folder: "eventura_file_handling/payment_proofs" },
+            { folder: "eventura/payment_proofs" },
             (err, result) => {
               if (err || !result) {
                 return reject(new AppError("Failed to upload new payment proof to Cloudinary", 500));
