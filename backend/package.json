@@ -3,8 +3,8 @@
 	"version": "1.0.0",
 	"scripts": {
 		"dev": "tsx watch src/server.ts",
-		"build": "npx tsc",
-		"start": "node dist/src/server.js",
+		"build": "npx prisma generate && npx tsc",
+        "start": "node dist/server.js",
 		"db:init": "npx prisma init",
 		"db:studio": "npx prisma studio",
 		"gen:dev": "npx prisma generate",
