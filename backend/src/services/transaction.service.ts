@@ -1,5 +1,7 @@
 import { prisma } from "../libs/prisma.client.js";
 import AppError from "../errors/app.error.js";
+import renderTemplate from "../libs/handlebars.js";
+import EmailService from "./email.service.js";
 
 interface PointRecord {
   id: string;
@@ -77,7 +79,7 @@ class TransactionService {
     payload: { eventId: string; quantity: number; useCouponId?: string | null; usePoints: boolean },
     paymentProofUrl: string
   ) {
-    return await (prisma as any).$transaction(async (tx: any) => {
+    const transaction = await (prisma as any).$transaction(async (tx: any) => {
       const preview = await this.calculateCheckoutPreview(
         userId,
         payload.eventId,
@@ -96,7 +98,7 @@ class TransactionService {
         data: { seats: { decrement: payload.quantity } }
       });
 
-      const transaction = await tx.transaction.create({
+      const newTransaction = await tx.transaction.create({
         data: {
           userId,
           eventId: payload.eventId,
@@ -106,13 +108,17 @@ class TransactionService {
           finalPrice: preview.finalPrice,
           paymentProof: paymentProofUrl,
           status: "PENDING"
+        },
+        include: {
+          user: true,
+          event: true
         }
       });
 
       if (preview.couponToUse) {
         await tx.coupon.update({
           where: { id: preview.couponToUse.id },
-          data: { isUsed: true, transactionId: transaction.id }
+          data: { isUsed: true, transactionId: newTransaction.id }
         });
       }
 
@@ -124,14 +130,33 @@ class TransactionService {
 
           await tx.point.update({
             where: { id: pointRecord.id },
-            data: { isUsed: true, transactionId: transaction.id }
+            data: { isUsed: true, transactionId: newTransaction.id }
           });
           costCovered -= pointRecord.amount;
         }
       }
 
-      return transaction;
+      return newTransaction;
     });
+
+    if (transaction?.user?.email) {
+      try {
+        const emailHtml = renderTemplate("payment-proof.email.hbs", {
+          transactionId: transaction.id,
+          finalPrice: transaction.finalPrice.toLocaleString()
+        });
+
+        await EmailService.sendEmail(
+          transaction.user.email,
+          `Payment Proof Received - Transaction #${transaction.id}`,
+          emailHtml
+        );
+      } catch (err) {
+        console.error("Failed to send payment proof confirmation email:", err);
+      }
+    }
+
+    return transaction;
   }
 
   async reuploadPaymentProof(userId: string, transactionId: string, newPaymentProofUrl: string) {
@@ -159,7 +184,10 @@ class TransactionService {
   async updateTransactionStatus(organizerId: string, transactionId: string, status: "DONE" | "REJECTED") {
     const transaction = await (prisma as any).transaction.findUnique({
       where: { id: transactionId },
-      include: { event: true }
+      include: {
+        event: true,
+        user: true
+      }
     });
 
     if (!transaction) {
@@ -175,7 +203,7 @@ class TransactionService {
       return transaction;
     }
 
-    return await (prisma as any).$transaction(async (tx: any) => {
+    const updatedTransaction = await (prisma as any).$transaction(async (tx: any) => {
       if (status === "REJECTED" && transaction.status !== "REJECTED") {
         await tx.event.update({
           where: { id: transaction.eventId },
@@ -202,9 +230,35 @@ class TransactionService {
 
       return await tx.transaction.update({
         where: { id: transactionId },
-        data: { status }
+        data: { status },
+        include: {
+          user: true,
+          event: true
+        }
       });
     });
+
+    if (status === "DONE" && updatedTransaction?.user?.email) {
+      try {
+        const emailHtml = renderTemplate("ticket-approved.email.hbs", {
+          fullName: updatedTransaction.user.fullName || updatedTransaction.user.email.split("@")[0],
+          eventName: updatedTransaction.event.name,
+          quantity: updatedTransaction.quantity,
+          finalPrice: updatedTransaction.finalPrice.toLocaleString(),
+          transactionId: updatedTransaction.id
+        });
+
+        await EmailService.sendEmail(
+          updatedTransaction.user.email,
+          `🎟️ Pass Approved & Confirmed - ${updatedTransaction.event.name}`,
+          emailHtml
+        );
+      } catch (err) {
+        console.error("Failed to send ticket confirmation email:", err);
+      }
+    }
+
+    return updatedTransaction;
   }
 }
 
