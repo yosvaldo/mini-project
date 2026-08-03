@@ -95,13 +95,15 @@ class AuthController {
                         hasCoupon: wasReferred,
                     });
 
-                    await EmailService.sendEmail(
+                    EmailService.sendEmail(
                         createdUser.email,
                         "Welcome to Eventura!",
                         emailHtml
-                    );
-                } catch (emailErr) {
-                    console.error("Failed to send welcome email:", emailErr);
+                    ).catch((emailErr) => {
+                        console.error("Background welcome email send failed:", emailErr);
+                    });
+                } catch (templateErr) {
+                    console.error("Failed to render welcome email template:", templateErr);
                 }
             }
 

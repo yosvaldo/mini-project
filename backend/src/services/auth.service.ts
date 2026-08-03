@@ -81,7 +81,6 @@ export class AuthService {
       refreshToken,
     };
   }
-
 }
 
 export default AuthService;
