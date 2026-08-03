@@ -23,7 +23,7 @@ class TransactionService {
     useCouponId?: string | null,
     usePoints: boolean = false
   ) {
-    const event = await (prisma as any).event.findUnique({ where: { id: eventId } });
+    const event = await prisma.event.findUnique({ where: { id: eventId } });
     if (!event) throw new AppError("Target event not found", 404);
     if (event.seats < quantity) throw new AppError("Insufficient seats remaining", 400);
 
@@ -33,7 +33,7 @@ class TransactionService {
     let pointsToUse: PointRecord[] = [];
 
     if (useCouponId) {
-      const foundCoupon = await (prisma as any).coupon.findFirst({
+      const foundCoupon = await prisma.coupon.findFirst({
         where: { id: useCouponId, userId, isUsed: false, expiresAt: { gt: new Date() } }
       });
       if (!foundCoupon) throw new AppError("Coupon is invalid or expired", 400);
@@ -46,12 +46,12 @@ class TransactionService {
     if (runningPrice < 0) runningPrice = 0;
 
     if (usePoints && runningPrice > 0) {
-      const availablePoints = await (prisma as any).point.findMany({
+      const availablePoints = await prisma.point.findMany({
         where: { userId, isUsed: false, expiresAt: { gt: new Date() } },
         orderBy: { expiresAt: "asc" }
       });
 
-      const pointBalance = availablePoints.reduce((sum: number, p: PointRecord) => sum + p.amount, 0);
+      const pointBalance = availablePoints.reduce((sum, p) => sum + p.amount, 0);
 
       if (pointBalance > 0) {
         if (pointBalance >= runningPrice) {
@@ -79,7 +79,7 @@ class TransactionService {
     payload: { eventId: string; quantity: number; useCouponId?: string | null; usePoints: boolean },
     paymentProofUrl: string
   ) {
-    const transaction = await (prisma as any).$transaction(async (tx: any) => {
+    const transaction = await prisma.$transaction(async (tx) => {
       const preview = await this.calculateCheckoutPreview(
         userId,
         payload.eventId,
@@ -160,7 +160,7 @@ class TransactionService {
   }
 
   async reuploadPaymentProof(userId: string, transactionId: string, newPaymentProofUrl: string) {
-    const transaction = await (prisma as any).transaction.findFirst({
+    const transaction = await prisma.transaction.findFirst({
       where: { id: transactionId, userId }
     });
 
@@ -172,7 +172,7 @@ class TransactionService {
       throw new AppError("Payment proof can only be reuploaded for rejected transactions", 400);
     }
 
-    return await (prisma as any).transaction.update({
+    return await prisma.transaction.update({
       where: { id: transactionId },
       data: {
         paymentProof: newPaymentProofUrl,
@@ -182,7 +182,7 @@ class TransactionService {
   }
 
   async updateTransactionStatus(organizerId: string, transactionId: string, status: "DONE" | "REJECTED") {
-    const transaction = await (prisma as any).transaction.findUnique({
+    const transaction = await prisma.transaction.findUnique({
       where: { id: transactionId },
       include: {
         event: true,
@@ -194,7 +194,7 @@ class TransactionService {
       throw new AppError("Transaction not found", 404);
     }
 
-    const eventOrganizerId = transaction.event.organizerId ?? transaction.event.userId;
+    const eventOrganizerId = (transaction.event as any).organizerId ?? (transaction.event as any).userId;
     if (eventOrganizerId && eventOrganizerId !== organizerId) {
       throw new AppError("Unauthorized to update this transaction", 403);
     }
@@ -203,7 +203,7 @@ class TransactionService {
       return transaction;
     }
 
-    const updatedTransaction = await (prisma as any).$transaction(async (tx: any) => {
+    const updatedTransaction = await prisma.$transaction(async (tx) => {
       if (status === "REJECTED" && transaction.status !== "REJECTED") {
         await tx.event.update({
           where: { id: transaction.eventId },

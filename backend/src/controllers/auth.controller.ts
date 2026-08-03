@@ -6,6 +6,8 @@ import authService from "../services/auth.service.js";
 import { hashPassword } from "../libs/bcrypt.js";
 import { signUpSchema } from "../validators/auth.validator.js";
 import { prisma } from "../libs/prisma.client.js";
+import renderTemplate from "../libs/handlebars.js";
+import EmailService from "../services/email.service.js";
 
 class AuthController {
     signUp = async (req: Request, res: Response, next: NextFunction) => {
@@ -33,6 +35,9 @@ class AuthController {
                 ? rawReferralInput.trim().toUpperCase() 
                 : "";
 
+            let createdUser: any = null;
+            let wasReferred = false;
+
             await prisma.$transaction(async (tx) => {
                 let referrerUser = null;
 
@@ -51,7 +56,7 @@ class AuthController {
                     }
                 }
 
-                const newUser = await tx.user.create({
+                createdUser = await tx.user.create({
                     data: {
                         email,
                         password: hashedPassword,
@@ -63,6 +68,7 @@ class AuthController {
                 });
 
                 if (referrerUser) {
+                    wasReferred = true;
                     await tx.point.create({
                         data: {
                             userId: referrerUser.id,
@@ -73,13 +79,31 @@ class AuthController {
 
                     await tx.coupon.create({
                         data: {
-                            userId: newUser.id,
+                            userId: createdUser.id,
                             discountPct: 10,
                             expiresAt: expirationDate
                         }
                     });
                 }
             });
+
+            if (createdUser?.email) {
+                try {
+                    const emailHtml = renderTemplate("welcome.email.hbs", {
+                        fullName: createdUser.fullName || createdUser.email.split("@")[0],
+                        referralCode: createdUser.referralCode,
+                        hasCoupon: wasReferred,
+                    });
+
+                    await EmailService.sendEmail(
+                        createdUser.email,
+                        "Welcome to Eventura!",
+                        emailHtml
+                    );
+                } catch (emailErr) {
+                    console.error("Failed to send welcome email:", emailErr);
+                }
+            }
 
             return res
                 .status(201)

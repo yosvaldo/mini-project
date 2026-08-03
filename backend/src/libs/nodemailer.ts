@@ -1,4 +1,4 @@
-import nodemailer, { type TransportOptions } from "nodemailer";
+import nodemailer from "nodemailer";
 import {
     SMTP_HOST,
     SMTP_PASS,
@@ -6,13 +6,18 @@ import {
     SMTP_USER,
 } from "../configs/env.config.js";
 
+const port = Number(SMTP_PORT) || 465;
+
 const transporter = nodemailer.createTransport({
     host: SMTP_HOST,
-    port: SMTP_PORT,
+    port: port,
+    secure: port === 465,
     auth: {
         user: SMTP_USER,
         pass: SMTP_PASS,
     },
-} as TransportOptions);
+    connectionTimeout: 10000, 
+    greetingTimeout: 5000,   
+});
 
 export default transporter;
