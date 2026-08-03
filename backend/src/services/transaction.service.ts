@@ -146,13 +146,15 @@ class TransactionService {
           finalPrice: transaction.finalPrice.toLocaleString()
         });
 
-        await EmailService.sendEmail(
+        EmailService.sendEmail(
           transaction.user.email,
           `Payment Proof Received - Transaction #${transaction.id}`,
           emailHtml
-        );
+        ).catch((err) => {
+          console.error("Failed to send payment proof email in background:", err);
+        });
       } catch (err) {
-        console.error("Failed to send payment proof confirmation email:", err);
+        console.error("Failed to render payment proof email template:", err);
       }
     }
 
@@ -248,13 +250,15 @@ class TransactionService {
           transactionId: updatedTransaction.id
         });
 
-        await EmailService.sendEmail(
+        EmailService.sendEmail(
           updatedTransaction.user.email,
           `🎟️ Pass Approved & Confirmed - ${updatedTransaction.event.name}`,
           emailHtml
-        );
+        ).catch((err) => {
+          console.error("Failed to send ticket approval email in background:", err);
+        });
       } catch (err) {
-        console.error("Failed to send ticket confirmation email:", err);
+        console.error("Failed to render ticket approval email template:", err);
       }
     }
 

@@ -20,17 +20,24 @@ class CloudinaryStorageController {
                 async (err, result) => {
                     if (err || !result) return next(new AppError("Payment proof upload failed", 500, err));
 
-                    EmailService.sendEmail(
-                        userEmail,
-                        "Payment Proof Received - Eventura",
-                        renderTemplate("payment-success.email.hbs", {
+                    try {
+                        const emailHtml = renderTemplate("payment-proof.email.hbs", {
                             fileUrl: result.secure_url,
-                        }),
-                    );
+                        });
+                        EmailService.sendEmail(
+                            userEmail,
+                            "Payment Proof Received - Eventura",
+                            emailHtml
+                        ).catch((emailErr) => {
+                            console.error("Background email send failed:", emailErr);
+                        });
+                    } catch (templateErr) {
+                        console.error("Failed to render payment template:", templateErr);
+                    }
 
                     res.status(200).send({
                         status: 200,
-                        message: "Payment proof uploaded successfully! Confirmation email sent.",
+                        message: "Payment proof uploaded successfully! Confirmation email dispatched.",
                         data: { url: result.secure_url },
                     });
                 }
