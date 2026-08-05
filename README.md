@@ -22,9 +22,10 @@
 - **Incentive Engine:** 
   - Referrers earn **10,000 reward points** (valid for 3 months).
   - Reffered new users receive a **10% discount coupon** (valid for 3 months).
+- **Dashboard:** Organizer can check their earning, distributed ticket, and attendee.
 
 ### 🎫 Event & Transaction Pipeline
-- **Dynamic City & Category Filtering:** Search and filter upcoming live concerts and events by city with dynamic empty state handling.
+- **Dynamic City Filtering:** Filter upcoming live concerts and events by city with dynamic empty state handling.
 - **Backend Checkout Calculation:** Secure server-side calculation for base prices, coupon discounts, and point deductions (prevents price manipulation).
 - **Payment Proof Uploads:** Cloudinary CDN integration for payment receipt management.
 - **Organizer Verification Dashboard:** Organizers can verify payment proofs and update transaction statuses (`PENDING`, `DONE`, or `REJECTED`).
@@ -32,7 +33,7 @@
 
 ### 📧 Email Notifications
 - **Handlebars Template Engine:** Modular, responsive HTML email rendering.
-- **Nodemailer Integration:** Automated transactional email delivery for:
+- **Resend Integration:** Automated transactional email delivery for:
   - Welcome emails containing registration bonuses & unique referral codes.
   - Payment proof submission confirmations.
   - Approved ticket pass confirmations featuring full transaction summaries.
@@ -44,7 +45,7 @@
 ### **Frontend & Interface**
 * **Framework:** React.js, React Router DOM
 * **State Management:** Zustand
-* **Styling & UI:** Tailwind CSS, Lucide React Icons
+* **Styling & UI:** Tailwind CSS, Lucide React Icons, Recharts
 * **Document Head:** React Helmet Async
 * **Hosting Platform:** [Vercel](https://vercel.com/)
 
@@ -52,7 +53,7 @@
 * **Runtime & Framework:** Node.js, Express.js (TypeScript)
 * **Architecture:** RESTful APIs, Service-Controller Pattern, Middleware Chain
 * **Validation:** Zod Schema Validation
-* **Templating & Mailing:** Handlebars, Nodemailer via SMTP
+* **Templating & Mailing:** Handlebars, Resend
 * **Hosting Platform:** [Railway](https://railway.app/)
 
 ### **Database & Infrastructure**
