@@ -38,14 +38,13 @@ const useAuthStore = create<AuthState>()(
       accessToken: null,
 
       setAuth: (user, accessToken) => {
-        setAccessToken(accessToken); 
+        setAccessToken(accessToken);
         set({ user, accessToken });
       },
 
       signUp: async (data, onSuccess) => {
         try {
           await api.post("/auth/sign-up", data);
-
           if (onSuccess) onSuccess();
         } catch (error: unknown) {
           let message = "Failed to register account.";
@@ -60,8 +59,8 @@ const useAuthStore = create<AuthState>()(
         try {
           const response = await api.post("/auth/sign-in", data);
           const { accessToken, user } = response.data.data || {};
-          
-          setAccessToken(accessToken || null); 
+
+          setAccessToken(accessToken || null);
           set({ user: user || null, accessToken: accessToken || null });
 
           toast.success("Logged in successfully!");
@@ -89,7 +88,9 @@ const useAuthStore = create<AuthState>()(
     }),
     {
       name: "auth-storage",
-      partialize: (state) => ({ user: state.user }), 
+      partialize: (state) => ({
+        user: state.user,
+      }),
     }
   )
 );

@@ -33,7 +33,7 @@ export default function CheckoutPage() {
 
   const [event, setEvent] = useState<EventDetail | null>(null);
   const [fetchingEvent, setFetchingEvent] = useState<boolean>(true);
-  
+
   const [quantity, setQuantity] = useState<number>(1);
   const [usePoints, setUsePoints] = useState<boolean>(false);
   const [useCoupon, setUseCoupon] = useState<boolean>(false);
@@ -45,6 +45,8 @@ export default function CheckoutPage() {
   const [submitting, setSubmitting] = useState<boolean>(false);
   const [paymentFile, setPaymentFile] = useState<File | null>(null);
   const [showConfirm, setShowConfirm] = useState<boolean>(false);
+
+  const eventPrice = event?.price;
 
   useEffect(() => {
     const initCheckout = async () => {
@@ -80,8 +82,8 @@ export default function CheckoutPage() {
         params: {
           eventId,
           quantity,
-          useCouponId: useCoupon ? selectedCouponId : undefined,
-          usePoints: String(usePoints),
+          useCouponId: useCoupon && eventPrice !== 0 ? selectedCouponId : undefined,
+          usePoints: eventPrice === 0 ? "false" : String(usePoints),
         },
         headers: { Authorization: `Bearer ${accessToken}` },
       });
@@ -93,7 +95,7 @@ export default function CheckoutPage() {
     } finally {
       setLoadingPreview(false);
     }
-  }, [eventId, quantity, useCoupon, selectedCouponId, usePoints, accessToken]);
+  }, [eventId, quantity, useCoupon, selectedCouponId, usePoints, accessToken, eventPrice]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -114,7 +116,9 @@ export default function CheckoutPage() {
   };
 
   const handlePurchaseSubmit = async () => {
-    if (!paymentFile) {
+    const isFreeEvent = event?.price === 0;
+
+    if (!isFreeEvent && !paymentFile) {
       toast.error("Please upload payment slip proof");
       return;
     }
@@ -125,11 +129,13 @@ export default function CheckoutPage() {
     const formData = new FormData();
     formData.append("eventId", eventId || "");
     formData.append("quantity", String(quantity));
-    formData.append("usePoints", String(usePoints));
-    if (useCoupon && selectedCouponId) {
+    formData.append("usePoints", isFreeEvent ? "false" : String(usePoints));
+    if (!isFreeEvent && useCoupon && selectedCouponId) {
       formData.append("useCouponId", selectedCouponId);
     }
-    formData.append("paymentProof", paymentFile);
+    if (paymentFile) {
+      formData.append("paymentProof", paymentFile);
+    }
 
     try {
       await api.post("/transactions/purchase", formData, {
@@ -164,6 +170,7 @@ export default function CheckoutPage() {
     );
   }
 
+  const isFree = event.price === 0;
   const eventTitle = event.title || event.name || "Event Pass";
 
   return (
@@ -181,7 +188,7 @@ export default function CheckoutPage() {
             <div className="bg-slate-800 p-4 rounded-lg border border-slate-700">
               <h2 className="font-bold text-lg text-teal-400">{eventTitle}</h2>
               <p className="text-sm text-slate-400 mt-1">
-                Base Price: IDR {event.price?.toLocaleString()}
+                Base Price: {isFree ? <span className="text-emerald-400 font-semibold">FREE</span> : `IDR ${event.price?.toLocaleString()}`}
               </p>
             </div>
 
@@ -197,47 +204,51 @@ export default function CheckoutPage() {
             </div>
 
             {availableCoupons.length > 0 && (
-              <div className="flex items-center justify-between bg-slate-800 p-3 rounded border border-slate-700">
+              <div className={`flex items-center justify-between bg-slate-800 p-3 rounded border border-slate-700 ${isFree ? "opacity-50" : ""}`}>
                 <div className="flex items-center space-x-3">
                   <input
                     type="checkbox"
                     id="useCoupon"
-                    checked={useCoupon}
+                    disabled={isFree}
+                    checked={!isFree && useCoupon}
                     onChange={(e) => setUseCoupon(e.target.checked)}
-                    className="w-4 h-4 accent-teal-500 rounded cursor-pointer"
+                    className="w-4 h-4 accent-teal-500 rounded cursor-pointer disabled:cursor-not-allowed"
                   />
                   <label htmlFor="useCoupon" className="text-sm cursor-pointer select-none">
-                    Use Referral 10% Discount Coupon
+                    Use Referral 10% Discount Coupon {isFree && "(Not available for free events)"}
                   </label>
                 </div>
               </div>
             )}
 
-            <div className="flex items-center space-x-3 bg-slate-800 p-3 rounded border border-slate-700">
+            <div className={`flex items-center space-x-3 bg-slate-800 p-3 rounded border border-slate-700 ${isFree ? "opacity-50" : ""}`}>
               <input
                 type="checkbox"
                 id="usePoints"
-                checked={usePoints}
+                disabled={isFree}
+                checked={!isFree && usePoints}
                 onChange={(e) => setUsePoints(e.target.checked)}
-                className="w-4 h-4 accent-teal-500 rounded cursor-pointer"
+                className="w-4 h-4 accent-teal-500 rounded cursor-pointer disabled:cursor-not-allowed"
               />
               <label htmlFor="usePoints" className="text-sm cursor-pointer select-none">
-                Use Available Reward Points
+                Use Available Reward Points {isFree && "(Not available for free events)"}
               </label>
             </div>
 
-            <div className="border border-dashed border-slate-700 p-4 rounded-lg bg-slate-950 text-center">
-              <label className="block text-sm font-medium text-slate-300 mb-2 cursor-pointer">
-                Upload Payment Proof
-              </label>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileChange}
-                className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-slate-800 file:text-teal-400 hover:file:bg-slate-700 cursor-pointer"
-              />
-              {paymentFile && <p className="text-xs text-teal-400 mt-2">Selected: {paymentFile.name}</p>}
-            </div>
+            {!isFree && (
+              <div className="border border-dashed border-slate-700 p-4 rounded-lg bg-slate-950 text-center">
+                <label className="block text-sm font-medium text-slate-300 mb-2 cursor-pointer">
+                  Upload Payment Proof
+                </label>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleFileChange}
+                  className="block w-full text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-xs file:bg-slate-800 file:text-teal-400 hover:file:bg-slate-700 cursor-pointer"
+                />
+                {paymentFile && <p className="text-xs text-teal-400 mt-2">Selected: {paymentFile.name}</p>}
+              </div>
+            )}
           </div>
 
           <div className="bg-slate-950 p-6 rounded-lg border border-slate-800 flex flex-col justify-between">
@@ -250,15 +261,19 @@ export default function CheckoutPage() {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between">
                     <span className="text-slate-400">Subtotal Price:</span>
-                    <span>IDR {preview.basePrice.toLocaleString()}</span>
+                    <span>{isFree ? "IDR 0" : `IDR ${preview.basePrice.toLocaleString()}`}</span>
                   </div>
-                  <div className="flex justify-between text-emerald-400">
-                    <span>Discounts & Points Applied:</span>
-                    <span>- IDR {preview.discount.toLocaleString()}</span>
-                  </div>
+                  {!isFree && (
+                    <div className="flex justify-between text-emerald-400">
+                      <span>Discounts & Points Applied:</span>
+                      <span>- IDR {preview.discount.toLocaleString()}</span>
+                    </div>
+                  )}
                   <div className="flex justify-between font-bold text-base border-t border-slate-800 pt-3 mt-3 text-white">
                     <span>Final Amount Due:</span>
-                    <span className="text-teal-400">IDR {preview.finalPrice.toLocaleString()}</span>
+                    <span className="text-teal-400">
+                      {preview.finalPrice === 0 ? "FREE" : `IDR ${preview.finalPrice.toLocaleString()}`}
+                    </span>
                   </div>
                 </div>
               ) : (
@@ -269,10 +284,10 @@ export default function CheckoutPage() {
             <button
               type="button"
               onClick={() => setShowConfirm(true)}
-              disabled={!paymentFile || submitting}
+              disabled={(!isFree && !paymentFile) || submitting}
               className="w-full mt-6 bg-teal-600 hover:bg-teal-500 text-white font-bold py-3 px-4 rounded disabled:opacity-50 disabled:cursor-not-allowed transition cursor-pointer"
             >
-              {submitting ? "Processing..." : "Submit Purchase"}
+              {submitting ? "Processing..." : isFree ? "Claim Free Ticket" : "Submit Purchase"}
             </button>
           </div>
         </div>
@@ -281,7 +296,9 @@ export default function CheckoutPage() {
           <div className="fixed inset-0 flex items-center justify-center z-50 bg-black/60 backdrop-blur-xs">
             <div className="bg-slate-900 border border-slate-800 text-slate-100 p-6 rounded-xl max-w-sm w-full mx-4 shadow-xl">
               <h3 className="text-lg font-bold mb-2">Confirm Purchase</h3>
-              <p className="text-sm text-slate-400 mb-6">Authorize this purchase order?</p>
+              <p className="text-sm text-slate-400 mb-6">
+                {isFree ? "Claim this free ticket?" : "Authorize this purchase order?"}
+              </p>
               <div className="flex justify-end space-x-3">
                 <button
                   onClick={() => setShowConfirm(false)}

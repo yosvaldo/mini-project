@@ -3,11 +3,10 @@ import AppError from "../errors/app.error.js";
 import renderTemplate from "../libs/handlebars.js";
 import EmailService from "./email.service.js";
 
-interface PointRecord {
+interface PointUsage {
   id: string;
-  amount: number;
-  expiresAt: Date;
-  isUsed: boolean;
+  amountToDeduct: number;
+  fullAmount: number;
 }
 
 interface CouponRecord {
@@ -30,7 +29,17 @@ class TransactionService {
     const basePrice = event.price * quantity;
     let totalDiscount = 0;
     let couponToUse: CouponRecord | null = null;
-    let pointsToUse: PointRecord[] = [];
+    let pointsToUse: PointUsage[] = [];
+
+    if (basePrice === 0) {
+      return {
+        basePrice: 0,
+        discount: 0,
+        finalPrice: 0,
+        pointsToUse: [],
+        couponToUse: null,
+      };
+    }
 
     if (useCouponId) {
       const foundCoupon = await prisma.coupon.findFirst({
@@ -39,7 +48,7 @@ class TransactionService {
       if (!foundCoupon) throw new AppError("Coupon is invalid or expired", 400);
 
       couponToUse = { id: foundCoupon.id, discountPct: foundCoupon.discountPct };
-      totalDiscount += Math.floor(basePrice * 0.10);
+      totalDiscount += Math.floor((basePrice * foundCoupon.discountPct) / 100);
     }
 
     let runningPrice = basePrice - totalDiscount;
@@ -51,24 +60,28 @@ class TransactionService {
         orderBy: { expiresAt: "asc" }
       });
 
-      const pointBalance = availablePoints.reduce((sum, p) => sum + p.amount, 0);
+      let remainingCostToCover = runningPrice;
 
-      if (pointBalance > 0) {
-        if (pointBalance >= runningPrice) {
-          totalDiscount += runningPrice;
-          runningPrice = 0;
-        } else {
-          totalDiscount += pointBalance;
-          runningPrice -= pointBalance;
-        }
-        pointsToUse = availablePoints;
+      for (const pt of availablePoints) {
+        if (remainingCostToCover <= 0) break;
+
+        const deduct = Math.min(pt.amount, remainingCostToCover);
+        pointsToUse.push({
+          id: pt.id,
+          amountToDeduct: deduct,
+          fullAmount: pt.amount,
+        });
+
+        remainingCostToCover -= deduct;
+        totalDiscount += deduct;
+        runningPrice -= deduct;
       }
     }
 
     return {
       basePrice,
       discount: totalDiscount,
-      finalPrice: runningPrice,
+      finalPrice: Math.max(0, runningPrice),
       pointsToUse,
       couponToUse
     };
@@ -123,16 +136,18 @@ class TransactionService {
       }
 
       if (payload.usePoints && preview.pointsToUse.length > 0) {
-        let costCovered = preview.basePrice - (preview.couponToUse ? Math.floor(preview.basePrice * 0.1) : 0);
-
-        for (const pointRecord of preview.pointsToUse) {
-          if (costCovered <= 0) break;
-
-          await tx.point.update({
-            where: { id: pointRecord.id },
-            data: { isUsed: true, transactionId: newTransaction.id }
-          });
-          costCovered -= pointRecord.amount;
+        for (const pt of preview.pointsToUse) {
+          if (pt.amountToDeduct >= pt.fullAmount) {
+            await tx.point.update({
+              where: { id: pt.id },
+              data: { isUsed: true, transactionId: newTransaction.id }
+            });
+          } else {
+            await tx.point.update({
+              where: { id: pt.id },
+              data: { amount: { decrement: pt.amountToDeduct } }
+            });
+          }
         }
       }
 

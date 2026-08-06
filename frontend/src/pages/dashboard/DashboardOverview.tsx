@@ -50,10 +50,16 @@ interface TransactionItem {
   user: { fullName: string };
 }
 
+interface TotalMetrics {
+  revenue: number;
+  ticketsSold: number;
+}
+
 export default function DashboardOverview() {
   const { accessToken } = useAuthStore();
   const [events, setEvents] = useState<EventItem[]>([]);
   const [transactions, setTransactions] = useState<TransactionItem[]>([]);
+  const [totalMetrics, setTotalMetrics] = useState<TotalMetrics>({ revenue: 0, ticketsSold: 0 });
   const [loading, setLoading] = useState(true);
 
   const [searchTerm, setSearchTerm] = useState("");
@@ -79,9 +85,18 @@ export default function DashboardOverview() {
 
       try {
         setLoading(true);
-        const res = await api.get("/dashboard/metrics");
+        const res = await api.get("/dashboard/metrics", {
+          params: {
+            search: debouncedSearch || undefined,
+            range: timeRange,
+          },
+        });
+
         setEvents(res.data?.data?.events ?? []);
         setTransactions(res.data?.data?.transactions ?? []);
+        if (res.data?.data?.totalMetrics) {
+          setTotalMetrics(res.data.data.totalMetrics);
+        }
       } catch (err: unknown) {
         if (axios.isAxiosError(err) && err.response?.status === 401) {
           toast.error("Session expired or unauthorized access.");
@@ -94,14 +109,14 @@ export default function DashboardOverview() {
     };
 
     fetchMetrics();
-  }, [accessToken]);
+  }, [accessToken, debouncedSearch, timeRange]);
 
   const handleUpdateStatus = async (transactionId: string, action: "approve" | "reject") => {
     const targetStatus = action === "approve" ? "DONE" : "REJECTED";
     setProcessingId(transactionId);
 
     try {
-      await api.patch(`/transactions/${transactionId}/status`, {
+      await api.patch(`/dashboard/transactions/${transactionId}`, {
         status: targetStatus,
       });
 
@@ -123,18 +138,10 @@ export default function DashboardOverview() {
     }
   };
 
-  const filteredTransactions = useMemo(() => {
-    return (transactions || []).filter(
-      (t) =>
-        (t.event?.name ?? "").toLowerCase().includes(debouncedSearch.toLowerCase()) ||
-        (t.user?.fullName ?? "").toLowerCase().includes(debouncedSearch.toLowerCase())
-    );
-  }, [transactions, debouncedSearch]);
-
   const chartData = useMemo(() => {
     const aggregations: Record<string, { label: string; revenue: number; volume: number }> = {};
 
-    filteredTransactions.forEach((t) => {
+    transactions.forEach((t) => {
       if (t.status !== "DONE") return;
       const dateObj = new Date(t.createdAt);
 
@@ -153,17 +160,9 @@ export default function DashboardOverview() {
     });
 
     return Object.values(aggregations).sort((a, b) => a.label.localeCompare(b.label));
-  }, [filteredTransactions, timeRange]);
+  }, [transactions, timeRange]);
 
-  const totalMetrics = useMemo(() => {
-    const completeDone = (transactions || []).filter((t) => t.status === "DONE");
-    return {
-      revenue: completeDone.reduce((sum, t) => sum + Number(t.finalPrice ?? t.totalPrice ?? 0), 0),
-      ticketsSold: completeDone.reduce((sum, t) => sum + Number(t.quantity ?? 0), 0),
-    };
-  }, [transactions]);
-
-  if (loading) {
+  if (loading && transactions.length === 0 && events.length === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-slate-950 text-teal-400 font-mono animate-pulse">
         Compiling organizational statistical components records metrics...
@@ -195,7 +194,7 @@ export default function DashboardOverview() {
               <button
                 key={range}
                 onClick={() => setTimeRange(range)}
-                className={`px-4 py-1.5 rounded-md text-xs font-bold transition uppercase ${
+                className={`px-4 py-1.5 rounded-md text-xs font-bold transition uppercase cursor-pointer ${
                   timeRange === range ? "bg-teal-600 text-white" : "text-slate-400 hover:text-white"
                 }`}
               >
@@ -304,7 +303,7 @@ export default function DashboardOverview() {
             <div>
               <h3 className="text-base font-bold text-white">Live Search Audit Trail & Approvals</h3>
               <p className="text-xs text-slate-400">
-                Search criteria across client strings or event tags utilizing integrated safe debounce loops.
+                Search criteria across client strings or event tags utilizing backend database queries.
               </p>
             </div>
             <div className="relative w-full md:w-72">
@@ -319,7 +318,7 @@ export default function DashboardOverview() {
             </div>
           </div>
 
-          {filteredTransactions.length === 0 ? (
+          {transactions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-slate-500 space-y-2">
               <AlertCircle size={32} className="text-slate-600 animate-bounce" />
               <p className="text-sm font-medium">No records or items matching criteria filters found in active indexes.</p>
@@ -341,7 +340,7 @@ export default function DashboardOverview() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-800/50 font-mono text-slate-300">
-                  {filteredTransactions.map((t) => {
+                  {transactions.map((t) => {
                     const proof = t.paymentProofUrl || t.paymentProof;
                     const amount = t.finalPrice ?? t.totalPrice ?? 0;
 
@@ -458,4 +457,4 @@ export default function DashboardOverview() {
       </div>
     </>
   );
-}
+};
